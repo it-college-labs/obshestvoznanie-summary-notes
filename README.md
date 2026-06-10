@@ -1,0 +1,2 @@
+# obshestvoznanie-summary-notes
+
