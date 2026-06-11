@@ -53,14 +53,6 @@ export function IntroScene({ onActivate }: IntroSceneProps) {
             damping: 13,
           },
         }}
-        whileHover={
-          shouldReduceMotion
-            ? undefined
-            : {
-                scale: 1.045,
-                transition: { type: "spring", stiffness: 130, damping: 11 },
-              }
-        }
         whileTap={{ scale: 0.96 }}
       />
     </motion.section>

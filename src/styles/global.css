@@ -104,6 +104,14 @@ a {
 }
 
 .living-orb {
+  --glow-opacity: 0.82;
+  --glow-blur: 26px;
+  --glow-saturate: 1;
+  --rim-scale: 1;
+  --rim-y: 0px;
+  --rim-shadow-alpha: 0.36;
+  --img-scale: 1;
+  --img-rotate: 0deg;
   position: relative;
   display: grid;
   width: 240px;
@@ -114,6 +122,7 @@ a {
   border-radius: 999px;
   background: transparent;
   transform-style: preserve-3d;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button.living-orb {
@@ -132,14 +141,63 @@ button.living-orb {
   inset: -18%;
   border-radius: inherit;
   background:
-    radial-gradient(circle at 28% 28%, rgba(125, 211, 252, 0.72), transparent 31%),
-    radial-gradient(circle at 73% 24%, rgba(244, 114, 182, 0.58), transparent 30%),
-    radial-gradient(circle at 48% 78%, rgba(250, 204, 21, 0.42), transparent 34%),
-    radial-gradient(circle at 78% 76%, rgba(74, 222, 128, 0.36), transparent 30%);
-  filter: blur(26px);
-  opacity: 0.82;
+    radial-gradient(circle at 25% 24%, rgba(125, 211, 252, 0.84), transparent 31%),
+    radial-gradient(circle at 75% 24%, rgba(244, 114, 182, 0.72), transparent 30%),
+    radial-gradient(circle at 42% 78%, rgba(250, 204, 21, 0.58), transparent 34%),
+    radial-gradient(circle at 82% 74%, rgba(74, 222, 128, 0.5), transparent 30%),
+    radial-gradient(circle at 52% 48%, rgba(167, 139, 250, 0.54), transparent 36%);
+  filter: blur(var(--glow-blur)) saturate(var(--glow-saturate));
+  opacity: var(--glow-opacity);
   transform: translateZ(-1px);
   animation: auraFlow 8s ease-in-out infinite;
+  transition:
+    opacity 0.72s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.72s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.living-orb__particles {
+  position: absolute;
+  inset: -42%;
+  z-index: 1;
+  border-radius: inherit;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.living-orb__particle {
+  --particle-x: 0px;
+  --particle-y: 0px;
+  --particle-tx: 0px;
+  --particle-ty: 0px;
+  --particle-delay: 0ms;
+  --particle-size: 5px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--particle-size);
+  height: var(--particle-size);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow:
+    0 0 12px rgba(125, 211, 252, 0.42),
+    0 0 24px rgba(244, 114, 182, 0.18);
+  opacity: 0.2;
+  transform: translate3d(var(--particle-x), var(--particle-y), 0) scale(0.74);
+  transition:
+    opacity 0.52s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.72s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.living-orb__particle--1 {
+  background: #7dd3fc;
+}
+
+.living-orb__particle--2 {
+  background: #f9a8d4;
+}
+
+.living-orb__particle--3 {
+  background: #fde68a;
 }
 
 .living-orb__rim {
@@ -154,10 +212,11 @@ button.living-orb {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.55),
     inset 0 -24px 44px rgba(15, 23, 42, 0.22),
-    0 34px 70px rgba(0, 0, 0, 0.36);
+    0 34px 70px rgba(0, 0, 0, var(--rim-shadow-alpha));
+  transform: translate3d(0, var(--rim-y), 0) scale(var(--rim-scale));
   transition:
-    transform 0.64s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.64s cubic-bezier(0.16, 1, 0.3, 1);
+    transform 0.82s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.82s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .living-orb__rim img {
@@ -165,7 +224,8 @@ button.living-orb {
   height: 100%;
   object-fit: cover;
   user-select: none;
-  transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: scale(var(--img-scale)) rotate(var(--img-rotate));
+  transition: transform 0.92s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .living-orb__pulse {
@@ -176,27 +236,35 @@ button.living-orb {
   border-radius: inherit;
   opacity: 0.36;
   pointer-events: none;
+  transition:
+    opacity 0.72s cubic-bezier(0.16, 1, 0.3, 1),
+    inset 0.72s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .living-orb--active .living-orb__pulse {
   animation: pulseRing 2.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }
 
-.living-orb:hover .living-orb__glow {
-  opacity: 1;
-  filter: blur(32px);
+.living-orb:hover,
+.living-orb:focus-visible {
+  --glow-opacity: 1;
+  --glow-blur: 36px;
+  --glow-saturate: 1.34;
+  --rim-scale: 0.982;
+  --rim-y: 1.5px;
+  --rim-shadow-alpha: 0.48;
+  --img-scale: 1.055;
+  --img-rotate: -0.7deg;
 }
 
-.living-orb:hover .living-orb__rim {
-  transform: scale(0.965) translateY(2px);
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.6),
-    inset 0 -34px 54px rgba(15, 23, 42, 0.32),
-    0 44px 90px rgba(0, 0, 0, 0.46);
+.living-orb:hover .living-orb__pulse,
+.living-orb:focus-visible .living-orb__pulse {
+  opacity: 0.5;
 }
 
-.living-orb:hover .living-orb__rim img {
-  transform: scale(1.08) rotate(-1deg);
+.living-orb:hover .living-orb__particle,
+.living-orb:focus-visible .living-orb__particle {
+  animation: particleAttract 1.42s cubic-bezier(0.16, 1, 0.3, 1) var(--particle-delay) infinite;
 }
 
 .intro-orb {
@@ -1099,6 +1167,27 @@ button.living-orb {
   100% {
     transform: scale(1.22);
     opacity: 0;
+  }
+}
+
+@keyframes particleAttract {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--particle-x), var(--particle-y), 0) scale(0.58);
+  }
+
+  18% {
+    opacity: 0.88;
+  }
+
+  64% {
+    opacity: 0.72;
+    transform: translate3d(0, 0, 0) scale(0.86);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--particle-tx), var(--particle-ty), 0) scale(0.18);
   }
 }
 
