@@ -1,7 +1,6 @@
-import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useState } from "react";
 import type { ArticleConfig } from "../../content/types";
-import { ArchiveRevealCanvas } from "./ArchiveRevealCanvas";
 import { ArticleFolderCard } from "./ArticleFolderCard";
 
 type ArchiveSceneProps = {
@@ -9,9 +8,35 @@ type ArchiveSceneProps = {
   onSelectArticle: (article: ArticleConfig) => void;
 };
 
+const REVEAL_DURATION = 1.18;
+const SOURCE_SIZE = 92;
+
+function getArchiveInset(width: number) {
+  if (width <= 640) return 16;
+  return Math.max(20, Math.min(48, width * 0.04));
+}
+
+function getArchiveBounds() {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const inset = getArchiveInset(width);
+
+  return {
+    width: width - inset * 2,
+    height: height - inset * 2,
+  };
+}
+
 export function ArchiveScene({ articles, onSelectArticle }: ArchiveSceneProps) {
+  const shouldReduceMotion = useReducedMotion();
   const [isReady, setIsReady] = useState(false);
-  const handleRevealComplete = useCallback(() => setIsReady(true), []);
+  const [bounds, setBounds] = useState(() => getArchiveBounds());
+
+  useEffect(() => {
+    const syncBounds = () => setBounds(getArchiveBounds());
+    window.addEventListener("resize", syncBounds);
+    return () => window.removeEventListener("resize", syncBounds);
+  }, []);
 
   return (
     <motion.section
@@ -21,39 +46,59 @@ export function ArchiveScene({ articles, onSelectArticle }: ArchiveSceneProps) {
       exit={{ opacity: 0, filter: "blur(14px)" }}
       transition={{ duration: 0.55 }}
     >
-      <AnimatePresence>
-        {!isReady && <ArchiveRevealCanvas onComplete={handleRevealComplete} />}
-      </AnimatePresence>
-
       <motion.div
-        className="archive-shell"
-        initial={{ opacity: 0, scale: 0.985, y: 16 }}
+        className={`archive-shell ${
+          isReady ? "archive-shell--ready" : "archive-shell--revealing"
+        }`}
+        initial={
+          shouldReduceMotion
+            ? {
+                width: bounds.width,
+                height: bounds.height,
+                borderRadius: 32,
+                opacity: 1,
+              }
+            : {
+                width: SOURCE_SIZE,
+                height: SOURCE_SIZE,
+                borderRadius: 999,
+                opacity: 0.98,
+              }
+        }
         animate={{
-          opacity: isReady ? 1 : 0,
-          scale: isReady ? 1 : 0.985,
-          y: isReady ? 0 : 16,
+          width: bounds.width,
+          height: bounds.height,
+          borderRadius: shouldReduceMotion ? 24 : 32,
+          opacity: 1,
         }}
-        transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
+        onAnimationComplete={() => setIsReady(true)}
+        transition={{
+          duration: shouldReduceMotion ? 0.01 : REVEAL_DURATION,
+          ease: [0.16, 1, 0.3, 1],
+        }}
       >
-        <header className="archive-topbar" aria-label="Нейроархив">
-          <span className="window-dots" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </span>
-          <span className="archive-path">Нейроархив / недели</span>
-        </header>
+        <span className="archive-source-shine" aria-hidden="true" />
+        <div className="archive-content" aria-hidden={!isReady}>
+          <header className="archive-topbar" aria-label="Нейроархив">
+            <span className="window-dots" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+            <span className="archive-path">Нейроархив / недели</span>
+          </header>
 
-        <div className="folder-grid">
-          {isReady &&
-            articles.map((article, index) => (
-              <ArticleFolderCard
-                key={article.id}
-                article={article}
-                index={index}
-                onOpen={onSelectArticle}
-              />
-            ))}
+          <div className="folder-grid">
+            {isReady &&
+              articles.map((article, index) => (
+                <ArticleFolderCard
+                  key={article.id}
+                  article={article}
+                  index={index}
+                  onOpen={onSelectArticle}
+                />
+              ))}
+          </div>
         </div>
       </motion.div>
     </motion.section>
