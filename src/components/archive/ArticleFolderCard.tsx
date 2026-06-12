@@ -6,6 +6,7 @@ import type { ArticleConfig } from "../../content/types";
 type ArticleFolderCardProps = {
   article: ArticleConfig;
   index: number;
+  isLeaving?: boolean;
   onOpen: (article: ArticleConfig) => void;
 };
 
@@ -26,6 +27,7 @@ function useCoarsePointer() {
 export function ArticleFolderCard({
   article,
   index,
+  isLeaving = false,
   onOpen,
 }: ArticleFolderCardProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -43,24 +45,31 @@ export function ArticleFolderCard({
     { x: 0, y: -94, rotate: 2 },
     { x: 44, y: -74, rotate: 14 },
   ];
+  const previewsAreOpen = isOpen && !isLeaving;
 
   return (
     <motion.button
       type="button"
-      className={`article-folder ${isOpen ? "article-folder--open" : ""}`}
+      className={`article-folder ${previewsAreOpen ? "article-folder--open" : ""}`}
       style={accentStyle}
       initial={{ opacity: 0, y: 28, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      animate={
+        isLeaving
+          ? { opacity: 0, y: 18, scale: 0.94 }
+          : { opacity: 1, y: 0, scale: 1 }
+      }
       transition={{
-        delay: 0.16 + index * 0.12,
-        duration: shouldReduceMotion ? 0.2 : 0.72,
+        delay: isLeaving ? 0.08 + index * 0.055 : 0.16 + index * 0.12,
+        duration: shouldReduceMotion ? 0.2 : isLeaving ? 0.24 : 0.72,
         ease: [0.22, 1, 0.36, 1],
       }}
-      onPointerEnter={() => setIsOpen(true)}
+      onPointerEnter={() => !isLeaving && setIsOpen(true)}
       onPointerLeave={() => setIsOpen(false)}
-      onFocus={() => setIsOpen(true)}
+      onFocus={() => !isLeaving && setIsOpen(true)}
       onBlur={() => setIsOpen(false)}
       onClick={() => {
+        if (isLeaving) return;
+
         if (isCoarsePointer && !isOpen) {
           setIsOpen(true);
           return;
@@ -69,7 +78,7 @@ export function ArticleFolderCard({
         onOpen(article);
       }}
       whileHover={
-        shouldReduceMotion
+        shouldReduceMotion || isLeaving
           ? undefined
           : {
               y: -8,
@@ -93,7 +102,7 @@ export function ArticleFolderCard({
             draggable="false"
             initial={false}
             animate={
-              isOpen
+              previewsAreOpen
                 ? {
                     opacity: 1,
                     x: [0, previewFan[previewIndex].x * 0.62, previewFan[previewIndex].x],
@@ -114,7 +123,7 @@ export function ArticleFolderCard({
                   }
             }
             transition={{
-              delay: isOpen ? previewIndex * 0.06 : 0,
+              delay: previewsAreOpen ? previewIndex * 0.06 : 0,
               type: shouldReduceMotion ? "tween" : "spring",
               stiffness: 92,
               damping: 12,

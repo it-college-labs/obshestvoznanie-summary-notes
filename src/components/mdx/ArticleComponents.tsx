@@ -36,7 +36,7 @@ function Definition({ term, children }: DefinitionProps) {
       </span>
       <div>
         <strong>{term}</strong>
-        <p>{children}</p>
+        <div className="mdx-block-body">{children}</div>
       </div>
     </aside>
   );
@@ -74,7 +74,7 @@ function KeyIdea({ children }: WithChildren) {
   return (
     <aside className="mdx-key-idea">
       <span>Ключевая мысль</span>
-      <p>{children}</p>
+      <div className="mdx-key-idea__body">{children}</div>
     </aside>
   );
 }
