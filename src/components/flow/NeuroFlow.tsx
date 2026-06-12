@@ -18,6 +18,7 @@ type FlowPhase =
   | "closingToArticle"
   | "preparingArchive"
   | "closingToArchive"
+  | "resettingToIntro"
   | "openingArticle"
   | "thinking"
   | "streaming"
@@ -48,11 +49,19 @@ const ROUTE_SWAP_MS = SHELL_MORPH_MS + 40;
 const ARCHIVE_UNLOAD_MS = 560;
 const ARTICLE_UNLOAD_MS = 520;
 const BOT_SETTLE_MS = 860;
+const RESET_TO_INTRO_MS = 980;
 const BOT_MESSAGES = [
   "Читайте внимательно!",
   "Да, я это собрал сам!",
   "Наведи на папку, там спрятаны превью.",
+  "Тут всё разложено по неделям.",
+  "Выбирай тему, а я подержу переход.",
+  "Превью выезжают прямо из папки.",
+];
+const RESET_MESSAGES = [
   "Хотите начать сначала? :)",
+  "Вернуть первый экран?",
+  "Соберём маршрут заново?",
 ];
 
 function rememberActivated() {
@@ -177,7 +186,9 @@ function isTransferPhase(phase: FlowPhase) {
 }
 
 function getShellRect(phase: FlowPhase, viewport: Viewport): Rect {
-  if (phase === "intro") return getIntroBotRect(viewport);
+  if (phase === "intro" || phase === "resettingToIntro") {
+    return getIntroBotRect(viewport);
+  }
   if (isTransferPhase(phase)) {
     return getTransferBotRect(viewport);
   }
@@ -195,7 +206,7 @@ function getShellRect(phase: FlowPhase, viewport: Viewport): Rect {
 }
 
 function getBotRect(phase: FlowPhase, viewport: Viewport): Rect {
-  if (phase === "intro") {
+  if (phase === "intro" || phase === "resettingToIntro") {
     return getIntroBotRect(viewport);
   }
 
@@ -260,6 +271,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
   );
   const [assistantPanelActive, setAssistantPanelActive] = useState(false);
   const [botMessageIndex, setBotMessageIndex] = useState(0);
+  const [botInteractionCount, setBotInteractionCount] = useState(0);
 
   const selectedArticle = useMemo(
     () => getArticleById(articles, selectedArticleId),
@@ -275,8 +287,15 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
           x: -botRect.width - 96,
         }
       : botRect;
-  const shellShouldRender = phase !== "intro" && phase !== "movingToArchive";
-  const isResetTip = phase === "archive" && botMessageIndex === 3;
+  const shellShouldRender =
+    phase !== "intro" && phase !== "movingToArchive";
+  const isResetTip =
+    phase === "archive" &&
+    botInteractionCount > 0 &&
+    botInteractionCount % 3 === 0;
+  const currentBotMessage = isResetTip
+    ? RESET_MESSAGES[(botInteractionCount / 3 - 1) % RESET_MESSAGES.length]
+    : BOT_MESSAGES[botMessageIndex];
   const botIsActive =
     (phase !== "archive" && phase !== "ready") ||
     assistantPanelActive ||
@@ -294,8 +313,10 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     phase === "settlingArchive" ||
     phase === "closingToArticle" ||
     phase === "closingToArchive" ||
+    phase === "resettingToIntro" ||
     phase === "openingArticle";
-  const archiveIsLeaving = phase === "preparingArticle";
+  const archiveIsLeaving =
+    phase === "preparingArticle" || phase === "resettingToIntro";
   const articleIsLeaving = phase === "preparingArchive";
   const showArchiveContent = phase === "archive" || archiveIsLeaving;
   const showArticleContent =
@@ -418,6 +439,18 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
       }, shouldReduceMotion ? 80 : ROUTE_SWAP_MS);
     }
 
+    if (phase === "resettingToIntro") {
+      schedule(() => {
+        pendingRouteTransition.current = null;
+        navigate("/");
+        setAssistantPanelActive(false);
+        setBotMessageIndex(0);
+        setBotInteractionCount(0);
+        setIntroBotArrived(true);
+        setPhase("intro");
+      }, shouldReduceMotion ? 80 : RESET_TO_INTRO_MS);
+    }
+
     if (phase === "openingArticle") {
       schedule(() => setPhase("thinking"), shouldReduceMotion ? 60 : 760);
     }
@@ -460,19 +493,23 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     }
 
     if (phase === "archive") {
-      setBotMessageIndex((index) => (index + 1) % BOT_MESSAGES.length);
+      setBotInteractionCount((count) => {
+        const nextCount = count + 1;
+
+        if (nextCount % 3 !== 0) {
+          setBotMessageIndex((index) => (index + 1) % BOT_MESSAGES.length);
+        }
+
+        return nextCount;
+      });
       setAssistantPanelActive(true);
     }
   };
 
   const restartFlow = () => {
     clearTimers();
-    pendingRouteTransition.current = null;
-    navigate("/");
     setAssistantPanelActive(false);
-    setBotMessageIndex(0);
-    setIntroBotArrived(false);
-    setPhase("intro");
+    setPhase("resettingToIntro");
   };
 
   const streamingPhase: Exclude<GenerationPhase, "thinking"> =
@@ -593,7 +630,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
                   >
                     <AnimatePresence mode="wait">
                       <motion.span
-                        key={botMessageIndex}
+                        key={currentBotMessage}
                         className="flow-assistant-copy__message"
                         initial={{ opacity: 0, y: 8, filter: "blur(8px)" }}
                         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -603,7 +640,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
                           ease: [0.22, 1, 0.36, 1],
                         }}
                       >
-                        {BOT_MESSAGES[botMessageIndex]}
+                        {currentBotMessage}
                       </motion.span>
                     </AnimatePresence>
                     {isResetTip && (
@@ -705,6 +742,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
           phase === "closingToArticle" ||
           phase === "preparingArchive" ||
           phase === "closingToArchive" ||
+          phase === "resettingToIntro" ||
           phase === "openingArticle" ||
           phase === "thinking" ||
           phase === "streaming" ||
@@ -722,6 +760,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
           scale:
             phase === "closingToArticle" ||
             phase === "closingToArchive" ||
+            phase === "resettingToIntro" ||
             phase === "openingArticle"
               ? [1, 0.9, 1]
               : 1,
