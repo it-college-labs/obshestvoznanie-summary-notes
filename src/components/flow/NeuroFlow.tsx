@@ -16,6 +16,7 @@ type FlowPhase =
   | "archive"
   | "preparingArticle"
   | "closingToArticle"
+  | "preparingArchive"
   | "closingToArchive"
   | "openingArticle"
   | "thinking"
@@ -45,6 +46,7 @@ const INTRO_DELAY = 1550;
 const SHELL_MORPH_MS = 960;
 const ROUTE_SWAP_MS = SHELL_MORPH_MS + 40;
 const ARCHIVE_UNLOAD_MS = 560;
+const ARTICLE_UNLOAD_MS = 520;
 const BOT_SETTLE_MS = 860;
 const BOT_MESSAGES = [
   "Читайте внимательно!",
@@ -181,6 +183,7 @@ function getShellRect(phase: FlowPhase, viewport: Viewport): Rect {
   }
   if (
     phase === "openingArticle" ||
+    phase === "preparingArchive" ||
     phase === "thinking" ||
     phase === "streaming" ||
     phase === "ready"
@@ -279,6 +282,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     assistantPanelActive ||
     isResetTip;
   const isArticle =
+    phase === "preparingArchive" ||
     phase === "closingToArchive" ||
     phase === "openingArticle" ||
     phase === "thinking" ||
@@ -292,9 +296,10 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     phase === "closingToArchive" ||
     phase === "openingArticle";
   const archiveIsLeaving = phase === "preparingArticle";
+  const articleIsLeaving = phase === "preparingArchive";
   const showArchiveContent = phase === "archive" || archiveIsLeaving;
   const showArticleContent =
-    phase === "closingToArchive" ||
+    articleIsLeaving ||
     phase === "thinking" ||
     phase === "streaming" ||
     phase === "ready";
@@ -350,6 +355,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
 
       if (
         phase === "openingArticle" ||
+        phase === "preparingArchive" ||
         phase === "thinking" ||
         phase === "streaming" ||
         phase === "ready"
@@ -397,6 +403,13 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
       }, shouldReduceMotion ? 80 : ROUTE_SWAP_MS);
     }
 
+    if (phase === "preparingArchive") {
+      schedule(
+        () => setPhase("closingToArchive"),
+        shouldReduceMotion ? 80 : ARTICLE_UNLOAD_MS,
+      );
+    }
+
     if (phase === "closingToArchive") {
       schedule(() => {
         pendingRouteTransition.current = "archive";
@@ -437,7 +450,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
   const backToArchive = () => {
     rememberActivated();
     setAssistantPanelActive(false);
-    setPhase("closingToArchive");
+    setPhase("preparingArchive");
   };
 
   const handleBotClick = () => {
@@ -617,13 +630,13 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
               className="flow-shell-content flow-article-content"
               initial={{ opacity: 0, y: 20, filter: "blur(12px)" }}
               animate={{
-                opacity: phase === "closingToArchive" ? 0 : 1,
-                y: phase === "closingToArchive" ? -12 : 0,
-                scale: phase === "closingToArchive" ? 0.94 : 1,
-                filter: "blur(0px)",
+                opacity: articleIsLeaving ? 0 : 1,
+                y: articleIsLeaving ? -14 : 0,
+                scale: articleIsLeaving ? 0.965 : 1,
+                filter: articleIsLeaving ? "blur(6px)" : "blur(0px)",
               }}
-              exit={{ opacity: 0, y: 18 }}
-              transition={{ duration: 0.56, ease: [0.22, 1, 0.36, 1] }}
+              exit={{ opacity: 0, y: 10, scale: 0.985 }}
+              transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
             >
               <div
                 className={`generation-blur generation-blur--top ${
@@ -641,7 +654,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
                 className="back-button"
                 type="button"
                 onClick={backToArchive}
-                disabled={phase === "closingToArchive"}
+                disabled={articleIsLeaving}
               >
                 <ArrowLeft size={18} />
                 В архив
@@ -690,6 +703,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
           phase === "settlingArchive" ||
           phase === "preparingArticle" ||
           phase === "closingToArticle" ||
+          phase === "preparingArchive" ||
           phase === "closingToArchive" ||
           phase === "openingArticle" ||
           phase === "thinking" ||
