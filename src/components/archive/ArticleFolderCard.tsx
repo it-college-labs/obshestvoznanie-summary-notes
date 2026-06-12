@@ -59,8 +59,8 @@ export function ArticleFolderCard({
           : { opacity: 1, y: 0, scale: 1 }
       }
       transition={{
-        delay: isLeaving ? 0.08 + index * 0.055 : 0.16 + index * 0.12,
-        duration: shouldReduceMotion ? 0.2 : isLeaving ? 0.24 : 0.72,
+        delay: isLeaving ? 0 : 0.16 + index * 0.12,
+        duration: shouldReduceMotion ? 0.2 : isLeaving ? 0.16 : 0.72,
         ease: [0.22, 1, 0.36, 1],
       }}
       onPointerEnter={() => !isLeaving && setIsOpen(true)}

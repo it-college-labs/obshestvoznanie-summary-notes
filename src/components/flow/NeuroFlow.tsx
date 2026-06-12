@@ -296,6 +296,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
   const currentBotMessage = isResetTip
     ? RESET_MESSAGES[(botInteractionCount / 3 - 1) % RESET_MESSAGES.length]
     : BOT_MESSAGES[botMessageIndex];
+  const assistantCopyVisible = assistantPanelActive || isResetTip;
   const botIsActive =
     (phase !== "archive" && phase !== "ready") ||
     assistantPanelActive ||
@@ -317,8 +318,10 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     phase === "openingArticle";
   const archiveIsLeaving =
     phase === "preparingArticle" || phase === "resettingToIntro";
+  const archiveIsRevealing = phase === "settlingArchive";
   const articleIsLeaving = phase === "preparingArchive";
-  const showArchiveContent = phase === "archive" || archiveIsLeaving;
+  const showArchiveContent =
+    phase === "archive" || archiveIsRevealing || archiveIsLeaving;
   const showArticleContent =
     articleIsLeaving ||
     phase === "thinking" ||
@@ -503,6 +506,11 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
         return nextCount;
       });
       setAssistantPanelActive(true);
+      return;
+    }
+
+    if (phase === "ready") {
+      backToArchive();
     }
   };
 
@@ -563,27 +571,40 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
             <motion.div
               key="archive"
               className={`flow-shell-content flow-archive-content ${
-                archiveIsLeaving ? "flow-archive-content--leaving" : ""
-              }`}
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
+                archiveIsRevealing ? "flow-archive-content--revealing" : ""
+              } ${archiveIsLeaving ? "flow-archive-content--leaving" : ""}`}
+              initial={{ opacity: 0, y: 18, scale: 0.965 }}
+              animate={
+                archiveIsLeaving
+                  ? { opacity: 0, y: 12, scale: 0.985 }
+                  : { opacity: 1, y: 0, scale: 1 }
+              }
               exit={{ opacity: 0, scale: 0.985 }}
-              transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                delay: archiveIsLeaving ? 0 : 0.08,
+                duration: shouldReduceMotion ? 0.16 : archiveIsLeaving ? 0.2 : 0.68,
+                ease: [0.16, 1, 0.3, 1],
+              }}
             >
               <div className="flow-archive-layout">
                 <section className="flow-archive-files" aria-label="Статьи">
                   <motion.header
                     className="archive-topbar"
                     aria-label="Нейроархив"
+                    initial={{
+                      opacity: 0,
+                      y: -18,
+                      scale: 0.965,
+                    }}
                     animate={
                       archiveIsLeaving
                         ? { opacity: 0, y: -12, scale: 0.985 }
                         : { opacity: 1, y: 0, scale: 1 }
                     }
                     transition={{
-                      delay: archiveIsLeaving ? 0.16 : 0,
-                      duration: archiveIsLeaving ? 0.24 : 0.36,
-                      ease: [0.22, 1, 0.36, 1],
+                      delay: archiveIsLeaving ? 0 : 0.14,
+                      duration: shouldReduceMotion ? 0.16 : archiveIsLeaving ? 0.18 : 0.58,
+                      ease: [0.16, 1, 0.3, 1],
                     }}
                   >
                     <span className="window-dots" aria-hidden="true">
@@ -607,56 +628,73 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
                   </div>
                 </section>
 
-                <aside
+                <motion.aside
                   className={`flow-assistant-rail ${
                     archiveIsLeaving ? "flow-assistant-rail--leaving" : ""
-                  }`}
+                  } ${assistantCopyVisible ? "flow-assistant-rail--copy-active" : ""}`}
                   aria-label="Ассистент"
+                  initial={{
+                    opacity: 0,
+                    x: 28,
+                    scale: 0.965,
+                  }}
+                  animate={
+                    archiveIsLeaving
+                      ? { opacity: 0, x: 22, scale: 0.985 }
+                      : { opacity: 1, x: 0, scale: 1 }
+                  }
+                  transition={{
+                    delay: archiveIsLeaving ? 0 : 0.16,
+                    duration: shouldReduceMotion ? 0.16 : archiveIsLeaving ? 0.2 : 0.46,
+                    ease: [0.16, 1, 0.3, 1],
+                  }}
                 >
                   <span className="flow-assistant-rail__divider" aria-hidden="true" />
-                  <motion.div
-                    className={`flow-assistant-copy flow-assistant-copy--visible ${
-                      assistantPanelActive || isResetTip
-                        ? "flow-assistant-copy--active"
-                        : ""
-                    } ${isResetTip ? "flow-assistant-copy--reset" : ""}`}
-                    initial={{ opacity: 0, y: 14, filter: "blur(10px)" }}
-                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    transition={{
-                      delay: 0.18,
-                      duration: 0.46,
-                      ease: [0.22, 1, 0.36, 1],
-                    }}
-                  >
-                    <AnimatePresence mode="wait">
-                      <motion.span
-                        key={currentBotMessage}
-                        className="flow-assistant-copy__message"
-                        initial={{ opacity: 0, y: 8, filter: "blur(8px)" }}
-                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                        exit={{ opacity: 0, y: -8, filter: "blur(8px)" }}
+                  <AnimatePresence>
+                    {assistantCopyVisible && (
+                      <motion.div
+                        className={`flow-assistant-copy flow-assistant-copy--visible flow-assistant-copy--active ${
+                          isResetTip ? "flow-assistant-copy--reset" : ""
+                        }`}
+                        initial={{ opacity: 0, y: 14, scale: 0.965 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.985 }}
                         transition={{
-                          duration: 0.28,
-                          ease: [0.22, 1, 0.36, 1],
+                          duration: 0.42,
+                          ease: [0.16, 1, 0.3, 1],
                         }}
                       >
-                        {currentBotMessage}
-                      </motion.span>
-                    </AnimatePresence>
-                    {isResetTip && (
-                      <motion.button
-                        className="flow-assistant-copy__button"
-                        type="button"
-                        onClick={restartFlow}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.24 }}
-                      >
-                        На старт
-                      </motion.button>
+                        <AnimatePresence mode="wait">
+                          <motion.span
+                            key={currentBotMessage}
+                            className="flow-assistant-copy__message"
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{
+                              duration: 0.28,
+                              ease: [0.22, 1, 0.36, 1],
+                            }}
+                          >
+                            {currentBotMessage}
+                          </motion.span>
+                        </AnimatePresence>
+                        {isResetTip && (
+                          <motion.button
+                            className="flow-assistant-copy__button"
+                            type="button"
+                            onClick={restartFlow}
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.24 }}
+                          >
+                            На старт
+                          </motion.button>
+                        )}
+                      </motion.div>
                     )}
-                  </motion.div>
-                </aside>
+                  </AnimatePresence>
+                </motion.aside>
               </div>
             </motion.div>
           )}
@@ -694,7 +732,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
                 disabled={articleIsLeaving}
               >
                 <ArrowLeft size={18} />
-                В архив
+                Назад
               </button>
 
               <AnimatePresence mode="wait">
@@ -745,8 +783,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
           phase === "resettingToIntro" ||
           phase === "openingArticle" ||
           phase === "thinking" ||
-          phase === "streaming" ||
-          phase === "ready"
+          phase === "streaming"
         }
         initial={false}
         animate={{
@@ -766,12 +803,34 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
               : 1,
         }}
         transition={{
-          duration: shouldReduceMotion
-            ? 0.01
-            : phase === "intro"
-              ? 1.18
-              : 0.82,
-          ease: [0.16, 1, 0.3, 1],
+          x: shouldReduceMotion
+            ? { duration: 0.01 }
+            : {
+                type: "spring",
+                stiffness: phase === "settlingArchive" ? 74 : 92,
+                damping: phase === "settlingArchive" ? 18 : 20,
+                mass: phase === "settlingArchive" ? 1.24 : 1.08,
+              },
+          y: shouldReduceMotion
+            ? { duration: 0.01 }
+            : {
+                type: "spring",
+                stiffness: phase === "settlingArchive" ? 74 : 92,
+                damping: phase === "settlingArchive" ? 18 : 20,
+                mass: phase === "settlingArchive" ? 1.24 : 1.08,
+              },
+          width: {
+            duration: shouldReduceMotion ? 0.01 : 0.72,
+            ease: [0.16, 1, 0.3, 1],
+          },
+          opacity: {
+            duration: shouldReduceMotion ? 0.01 : 0.42,
+            ease: [0.16, 1, 0.3, 1],
+          },
+          scale: {
+            duration: shouldReduceMotion ? 0.01 : 0.54,
+            ease: [0.16, 1, 0.3, 1],
+          },
         }}
         whileTap={phase === "intro" ? { scale: 0.96 } : undefined}
       />

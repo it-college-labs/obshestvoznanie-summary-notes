@@ -1,12 +1,15 @@
+@import url("https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&family=Onest:wght@400;500;600;700;800;900&display=swap");
+
 :root {
   color-scheme: dark;
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  font-family: var(--font-sans);
   font-synthesis: none;
   line-height: 1.5;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  --font-sans: "Onest", "Manrope", "Golos Text", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Manrope", "Onest", "Golos Text", ui-sans-serif, system-ui, sans-serif;
+  --font-reading: "Golos Text", "Onest", "Manrope", ui-sans-serif, system-ui, sans-serif;
   --archive-bg: #e4e6ea;
   --ink: #15181f;
   --muted: #667085;
@@ -23,6 +26,7 @@ html {
 }
 
 body {
+  font-family: var(--font-sans);
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
@@ -169,11 +173,23 @@ a {
 }
 
 .flow-archive-content--leaving {
+  overflow: hidden;
   pointer-events: none;
 }
 
-.flow-archive-content--leaving .folder-grid,
-.flow-archive-content--leaving .article-folder {
+.flow-archive-content--leaving .folder-grid {
+  overflow: hidden;
+  opacity: 0;
+  transform: translate3d(0, 10px, 0) scale(0.985);
+  transition:
+    opacity 0.18s ease,
+    transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.flow-archive-content--leaving .article-folder,
+.flow-archive-content--leaving .preview-stack,
+.flow-archive-content--leaving .preview-card {
+  opacity: 0;
   pointer-events: none;
 }
 
@@ -259,11 +275,11 @@ a {
   opacity: 0.58;
   transform: scale(0.95);
   transition:
-    opacity 0.72s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.72s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.42s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.flow-assistant-rail:has(.flow-assistant-copy--active)::after {
+.flow-assistant-rail--copy-active::after {
   opacity: 0.88;
   transform: scale(1.08);
 }
@@ -333,6 +349,7 @@ a {
   align-items: center;
   justify-content: center;
   color: currentColor;
+  font-family: var(--font-display);
   font-size: clamp(1.08rem, 1.55vw, 1.36rem);
   font-weight: 840;
   line-height: 1.16;
@@ -397,7 +414,7 @@ a {
 }
 
 .flow-bot--reset-tip {
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .flow-bot--hidden {
@@ -788,7 +805,7 @@ button.living-orb {
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.58);
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
+  box-shadow: none;
 }
 
 .window-dots {
@@ -819,6 +836,7 @@ button.living-orb {
   min-width: 0;
   overflow: hidden;
   color: #485162;
+  font-family: var(--font-display);
   font-size: 0.93rem;
   font-weight: 780;
   text-overflow: ellipsis;
@@ -998,6 +1016,7 @@ button.living-orb {
 
 .folder-week {
   color: #697386;
+  font-family: var(--font-display);
   font-size: 0.78rem;
   font-weight: 820;
   text-transform: uppercase;
@@ -1005,6 +1024,7 @@ button.living-orb {
 
 .folder-title {
   color: #161a22;
+  font-family: var(--font-display);
   font-size: 1.04rem;
   font-weight: 820;
   line-height: 1.16;
@@ -1286,6 +1306,7 @@ button.living-orb {
   max-width: 820px;
   margin: 0;
   color: #111318;
+  font-family: var(--font-display);
   font-size: clamp(2.3rem, 5vw, 5.6rem);
   line-height: 0.92;
   letter-spacing: 0;
@@ -1319,6 +1340,7 @@ button.living-orb {
   z-index: 2;
   margin-top: clamp(40px, 7vw, 76px);
   color: #232832;
+  font-family: var(--font-reading);
 }
 
 .stream-shell--streaming .stream-block,
@@ -1409,6 +1431,7 @@ button.living-orb {
 .article-content h2,
 .article-content h3 {
   color: #14171d;
+  font-family: var(--font-display);
   letter-spacing: 0;
 }
 
@@ -1456,7 +1479,7 @@ button.living-orb {
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.68);
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.035);
 }
 
 .mdx-block strong {
@@ -1490,15 +1513,17 @@ button.living-orb {
 .mdx-key-idea {
   padding: clamp(22px, 4vw, 34px);
   border-radius: 24px;
+  border: 1px solid rgba(15, 23, 42, 0.055);
   background:
-    radial-gradient(circle at 16% 12%, color-mix(in srgb, var(--accent-a), transparent 54%), transparent 36%),
-    linear-gradient(135deg, #151922, #222633);
-  color: #f8fafc;
-  box-shadow: 0 24px 54px rgba(15, 23, 42, 0.16);
+    radial-gradient(circle at 14% 8%, color-mix(in srgb, var(--accent-a), transparent 80%), transparent 34%),
+    rgba(255, 255, 255, 0.74);
+  color: #263040;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
 }
 
 .mdx-key-idea span {
-  color: color-mix(in srgb, var(--accent-a), white 24%);
+  color: #596274;
+  font-family: var(--font-display);
   font-size: 0.82rem;
   font-weight: 880;
   text-transform: uppercase;
@@ -1506,7 +1531,7 @@ button.living-orb {
 
 .mdx-key-idea__body {
   margin: 10px 0 0;
-  color: rgba(248, 250, 252, 0.9);
+  color: #3f4653;
   font-size: clamp(1.15rem, 1.6vw, 1.42rem);
 }
 
@@ -1527,7 +1552,7 @@ button.living-orb {
   padding: 6px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.66);
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.035);
 }
 
 .mdx-table-wrap figcaption {
