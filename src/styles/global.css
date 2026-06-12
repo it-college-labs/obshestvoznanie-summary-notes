@@ -56,6 +56,7 @@ a {
 
 #root,
 .app,
+.flow-stage,
 .intro-scene,
 .archive-scene,
 .article-scene {
@@ -65,6 +66,314 @@ a {
 .app {
   position: relative;
   isolation: isolate;
+}
+
+.flow-stage {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.flow-stage--openingArchive .grid-field,
+.flow-stage--archive .grid-field,
+.flow-stage--closingToArticle .grid-field,
+.flow-stage--closingToArchive .grid-field {
+  opacity: 0.35;
+}
+
+.flow-shell {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  overflow: visible;
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  background: var(--archive-bg);
+  color: var(--ink);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 40px 110px rgba(0, 0, 0, 0.34);
+  will-change: transform, width, height, border-radius, opacity;
+}
+
+.flow-shell--article {
+  background: rgba(250, 250, 248, 0.96);
+  border-color: rgba(255, 255, 255, 0.64);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 40px 110px rgba(0, 0, 0, 0.32);
+}
+
+.flow-shell--openingArchive,
+.flow-shell--closingToArticle,
+.flow-shell--closingToArchive,
+.flow-shell--openingArticle {
+  pointer-events: none;
+}
+
+.flow-shell__shine {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 96% 48%, rgba(255, 255, 255, 0.88), transparent 0 12%, rgba(255, 255, 255, 0) 32%),
+    linear-gradient(110deg, transparent 26%, rgba(255, 255, 255, 0.42) 45%, transparent 62%);
+  opacity: 0;
+}
+
+.flow-shell--openingArchive .flow-shell__shine,
+.flow-shell--closingToArticle .flow-shell__shine,
+.flow-shell--closingToArchive .flow-shell__shine,
+.flow-shell--openingArticle .flow-shell__shine {
+  opacity: 0.74;
+  animation: archiveShine 0.96s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.flow-shell-content {
+  position: absolute;
+  inset: clamp(16px, 2vw, 24px);
+  z-index: 2;
+  min-width: 0;
+  min-height: 0;
+}
+
+.flow-archive-content {
+  display: block;
+  overflow: visible;
+}
+
+.flow-archive-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(236px, 28%, 340px);
+  gap: clamp(18px, 2.4vw, 32px);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+}
+
+.flow-archive-files {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: visible;
+}
+
+.flow-assistant-rail {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  align-items: center;
+  justify-items: center;
+  padding: clamp(18px, 2.4vw, 28px);
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.22), transparent 0 21%, rgba(124, 58, 237, 0) 44%),
+    radial-gradient(circle at 42% 58%, rgba(20, 184, 166, 0.14), transparent 34%),
+    linear-gradient(155deg, rgba(18, 20, 31, 0.98), rgba(8, 10, 16, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -34px 90px rgba(0, 0, 0, 0.22),
+    0 24px 54px rgba(15, 23, 42, 0.1);
+  place-items: center;
+  color: #f8fafc;
+}
+
+.flow-assistant-rail::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(circle at 50% 50%, black 0 48%, transparent 78%);
+  opacity: 0.72;
+}
+
+.flow-assistant-rail::after {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  z-index: 1;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 36% 32%, rgba(125, 211, 252, 0.26), transparent 36%),
+    radial-gradient(circle at 68% 38%, rgba(244, 114, 182, 0.2), transparent 34%),
+    radial-gradient(circle at 50% 72%, rgba(74, 222, 128, 0.16), transparent 38%);
+  filter: blur(36px);
+  opacity: 0.58;
+  transform: scale(0.95);
+  transition:
+    opacity 0.72s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.72s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.flow-assistant-rail:has(.flow-assistant-copy--active)::after {
+  opacity: 0.88;
+  transform: scale(1.08);
+}
+
+.flow-assistant-rail__divider {
+  position: absolute;
+  z-index: 2;
+  top: clamp(8px, 1.8vh, 18px);
+  bottom: clamp(8px, 1.8vh, 18px);
+  left: 0;
+  width: 1px;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      180deg,
+      transparent,
+      rgba(148, 163, 184, 0.26) 16%,
+      rgba(255, 255, 255, 0.82) 46%,
+      rgba(148, 163, 184, 0.24) 82%,
+      transparent
+    );
+  box-shadow:
+    10px 0 32px rgba(125, 211, 252, 0.14),
+    -8px 0 24px rgba(15, 23, 42, 0.05);
+}
+
+.flow-assistant-copy {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  justify-items: center;
+  width: min(100%, 260px);
+  gap: 14px;
+  padding-top: clamp(190px, 30vh, 260px);
+  color: rgba(248, 250, 252, 0.94);
+  text-align: center;
+  text-shadow: 0 12px 42px rgba(0, 0, 0, 0.54);
+  transition:
+    opacity 0.46s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.46s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.flow-assistant-copy--active {
+  transform: translateY(-2px);
+}
+
+.flow-assistant-copy__message {
+  position: relative;
+  z-index: 3;
+  min-height: 50px;
+  color: currentColor;
+  font-size: clamp(1.08rem, 1.55vw, 1.36rem);
+  font-weight: 840;
+  line-height: 1.16;
+}
+
+.flow-assistant-copy__button {
+  position: relative;
+  z-index: 3;
+  width: fit-content;
+  min-height: 34px;
+  padding: 8px 14px;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  font-size: 0.82rem;
+  font-weight: 820;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 12px 28px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(12px);
+  transition:
+    background 0.22s ease,
+    transform 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+.flow-assistant-copy__button:hover {
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 16px 34px rgba(0, 0, 0, 0.28);
+  transform: translateY(-1px);
+}
+
+.flow-article-content {
+  overflow-y: auto;
+  overflow-x: visible;
+  padding-right: clamp(2px, 0.6vw, 8px);
+  scrollbar-gutter: stable;
+}
+
+.flow-thinking {
+  margin-top: clamp(34px, 7vw, 82px);
+}
+
+.flow-bot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 8;
+}
+
+.flow-bot:disabled {
+  cursor: default;
+}
+
+.flow-bot--hidden {
+  pointer-events: none;
+}
+
+.flow-bot--materializing {
+  --glow-opacity: 0.92;
+  --glow-blur: 18px;
+  --glow-saturate: 0.28;
+  --rim-scale: 0.78;
+  --rim-y: 0px;
+  --rim-shadow-alpha: 0.22;
+  --img-scale: 1.18;
+}
+
+.flow-bot--materializing .living-orb__glow {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(255, 255, 255, 0.98), transparent 48%),
+    radial-gradient(circle at 52% 52%, rgba(226, 232, 240, 0.72), transparent 72%);
+}
+
+.flow-bot--materializing .living-orb__rim {
+  border-color: rgba(255, 255, 255, 0.86);
+  background: #e4e6ea;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    inset 0 -20px 36px rgba(148, 163, 184, 0.18),
+    0 22px 46px rgba(0, 0, 0, 0.2);
+}
+
+.flow-bot--materializing .living-orb__rim img {
+  opacity: 0;
+  filter: grayscale(1) brightness(2.2) blur(8px);
+}
+
+.flow-bot--materializing .living-orb__particles,
+.flow-bot--materializing .living-orb__pulse {
+  opacity: 0;
+}
+
+.flow-shell--streaming .generation-blur {
+  opacity: 0.62;
+}
+
+.flow-shell--ready .generation-blur {
+  opacity: 0.16;
 }
 
 .intro-scene {
@@ -131,7 +440,8 @@ button.living-orb {
 
 .living-orb:focus-visible,
 .article-folder:focus-visible,
-.back-button:focus-visible {
+.back-button:focus-visible,
+.flow-assistant-copy__button:focus-visible {
   outline: 3px solid rgba(125, 211, 252, 0.9);
   outline-offset: 8px;
 }
@@ -153,6 +463,21 @@ button.living-orb {
   transition:
     opacity 0.72s cubic-bezier(0.16, 1, 0.3, 1),
     filter 0.72s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.living-orb__material {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: inherit;
+  background: var(--archive-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 26px 60px rgba(0, 0, 0, 0.26);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.34s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .living-orb__particles {
@@ -271,6 +596,45 @@ button.living-orb {
   width: min(300px, 58vw);
 }
 
+.intro-orb--materializing {
+  --glow-opacity: 0.92;
+  --glow-blur: 18px;
+  --glow-saturate: 0.28;
+  --rim-scale: 0.78;
+  --rim-y: 0px;
+  --rim-shadow-alpha: 0.22;
+  --img-scale: 1.18;
+}
+
+.intro-orb--materializing .living-orb__glow {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(255, 255, 255, 0.98), transparent 48%),
+    radial-gradient(circle at 52% 52%, rgba(226, 232, 240, 0.72), transparent 72%);
+}
+
+.intro-orb--materializing .living-orb__rim {
+  border-color: rgba(255, 255, 255, 0.86);
+  background: #e4e6ea;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    inset 0 -20px 36px rgba(148, 163, 184, 0.18),
+    0 22px 46px rgba(0, 0, 0, 0.2);
+}
+
+.intro-orb--materializing .living-orb__material {
+  opacity: 1;
+}
+
+.intro-orb--materializing .living-orb__rim img {
+  opacity: 0;
+  filter: grayscale(1) brightness(2.2) blur(8px);
+}
+
+.intro-orb--materializing .living-orb__particles,
+.intro-orb--materializing .living-orb__pulse {
+  opacity: 0;
+}
+
 .archive-scene {
   --page-inset: clamp(20px, 4vw, 48px);
   position: relative;
@@ -335,6 +699,13 @@ button.living-orb {
   opacity: 0;
 }
 
+.archive-shell--closing .archive-source-shine {
+  opacity: 0.78;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(255, 255, 255, 0.96), transparent 0 42%, rgba(255, 255, 255, 0) 68%),
+    linear-gradient(110deg, transparent 22%, rgba(255, 255, 255, 0.58) 48%, transparent 70%);
+}
+
 .archive-content {
   position: absolute;
   inset: clamp(16px, 2vw, 24px);
@@ -355,6 +726,15 @@ button.living-orb {
   opacity: 1;
   transform: scale(1);
   pointer-events: auto;
+}
+
+.archive-shell--closing .archive-content {
+  opacity: 0;
+  transform: scale(0.94);
+  pointer-events: none;
+  transition:
+    opacity 0.22s ease,
+    transform 0.52s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .archive-topbar {
@@ -642,8 +1022,9 @@ button.living-orb {
 
 .article-source-orb {
   position: fixed;
-  top: clamp(34px, 7vh, 78px);
+  top: auto;
   right: clamp(18px, 4vw, 70px);
+  bottom: clamp(24px, 6vh, 70px);
   z-index: 6;
   width: min(184px, 26vw);
 }
@@ -665,6 +1046,7 @@ button.living-orb {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     0 40px 110px rgba(0, 0, 0, 0.32);
+  transform-origin: 100% 100%;
 }
 
 .article-reader--thinking {
@@ -776,6 +1158,7 @@ button.living-orb {
 .stream-shell {
   position: relative;
   isolation: isolate;
+  overflow: visible;
 }
 
 .stream-scan {
@@ -783,7 +1166,7 @@ button.living-orb {
   z-index: 5;
   left: -8%;
   right: -8%;
-  top: -40px;
+  top: -110px;
   height: 170px;
   border-radius: 999px;
   pointer-events: none;
@@ -1233,17 +1616,18 @@ button.living-orb {
 
 @keyframes scanDown {
   0% {
-    transform: translateY(0);
+    top: -110px;
   }
 
   100% {
-    transform: translateY(min(1180px, 78vh));
+    top: calc(100% - 40px);
   }
 }
 
 @keyframes streamCursor {
   0% {
-    transform: translateY(0) scale(1.1);
+    top: 18px;
+    transform: scale(1.1);
   }
 
   78% {
@@ -1251,7 +1635,8 @@ button.living-orb {
   }
 
   100% {
-    transform: translateY(min(980px, 70vh)) scale(0.62);
+    top: calc(100% - 20px);
+    transform: scale(0.62);
     opacity: 0;
   }
 }
@@ -1259,6 +1644,16 @@ button.living-orb {
 @media (max-width: 980px) {
   .intro-orb {
     width: min(260px, 62vw);
+  }
+
+  .flow-archive-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(214px, 30%);
+    gap: 18px;
+  }
+
+  .flow-assistant-copy {
+    width: min(100%, 218px);
+    padding-top: clamp(164px, 28vh, 224px);
   }
 
   .folder-grid {
@@ -1270,6 +1665,51 @@ button.living-orb {
     right: 18px;
     bottom: 18px;
     width: min(128px, 30vw);
+  }
+}
+
+@media (max-width: 760px) {
+  .flow-archive-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+
+  .flow-assistant-rail {
+    min-height: 132px;
+    place-items: center start;
+    padding: 14px 154px 14px 18px;
+    border-radius: 24px;
+  }
+
+  .flow-assistant-rail__divider {
+    top: 0;
+    right: 0;
+    bottom: auto;
+    left: 0;
+    width: auto;
+    height: 1px;
+    background:
+      linear-gradient(
+        90deg,
+        transparent,
+        rgba(148, 163, 184, 0.28) 18%,
+        rgba(255, 255, 255, 0.82) 52%,
+        rgba(148, 163, 184, 0.24) 84%,
+        transparent
+      );
+  }
+
+  .flow-assistant-copy {
+    width: 100%;
+    padding-top: 0;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .flow-assistant-copy__message {
+    min-height: auto;
+    font-size: 1rem;
   }
 }
 

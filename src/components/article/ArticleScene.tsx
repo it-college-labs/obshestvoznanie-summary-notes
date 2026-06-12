@@ -75,17 +75,26 @@ export function ArticleScene({ article, onBack }: ArticleSceneProps) {
       />
 
       <motion.article
+        layoutId="content-shell"
         className={`article-reader article-reader--${phase}`}
-        initial={{ opacity: 0, y: 28, scale: 0.985 }}
+        initial={{
+          opacity: 0,
+          y: 0,
+          scale: 0.08,
+          borderRadius: 999,
+          filter: "blur(3px)",
+        }}
         animate={{
           opacity: 1,
           y: 0,
           scale: 1,
+          borderRadius: 32,
+          filter: "blur(0px)",
           backgroundColor: phase !== "thinking"
             ? "rgba(250, 250, 248, 0.96)"
             : "rgba(229, 231, 235, 0.78)",
         }}
-        transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.88, ease: [0.16, 1, 0.3, 1] }}
       >
         <div className="generation-blur generation-blur--top" aria-hidden="true" />
         <div className="generation-blur generation-blur--bottom" aria-hidden="true" />

@@ -13,7 +13,7 @@ export function IntroScene({ onActivate }: IntroSceneProps) {
   const [isActivating, setIsActivating] = useState(false);
   const shouldReduceMotion = useReducedMotion();
   const botDelay = shouldReduceMotion ? 0.2 : 2;
-  const exitDelay = shouldReduceMotion ? 80 : 620;
+  const exitDelay = shouldReduceMotion ? 80 : 300;
 
   const activate = () => {
     if (isActivating) return;
@@ -31,17 +31,18 @@ export function IntroScene({ onActivate }: IntroSceneProps) {
       <div className="grain-layer" aria-hidden="true" />
 
       <LivingOrbButton
-        className="intro-orb"
+        className={`intro-orb ${isActivating ? "intro-orb--materializing" : ""}`}
         image={guideBot}
         active
+        materialLayoutId="content-shell"
         ariaLabel="Открыть нейроархив"
         onClick={activate}
         initial={{ opacity: 0, x: "34vw", scale: 0.72, filter: "blur(18px)" }}
         animate={{
           opacity: isActivating ? 0.96 : 1,
-          x: isActivating ? "46vw" : 0,
+          x: isActivating ? "calc(50vw - 94px)" : 0,
           scale: isActivating ? 0.82 : [0.72, 1.08, 0.97, 1],
-          filter: isActivating ? "blur(7px)" : "blur(0px)",
+          filter: isActivating ? "blur(2px) saturate(0.2)" : "blur(0px)",
         }}
         transition={{
           delay: isActivating ? 0 : botDelay,
