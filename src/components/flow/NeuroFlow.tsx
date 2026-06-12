@@ -12,7 +12,9 @@ type FlowPhase =
   | "intro"
   | "movingToArchive"
   | "openingArchive"
+  | "settlingArchive"
   | "archive"
+  | "preparingArticle"
   | "closingToArticle"
   | "closingToArchive"
   | "openingArticle"
@@ -40,6 +42,10 @@ type NeuroFlowProps = {
 const ACTIVATED_KEY = "neuroarchive:activated";
 const BOT_IMAGE = publicAsset("assets/placeholders/bot-placeholder.png");
 const INTRO_DELAY = 1550;
+const SHELL_MORPH_MS = 960;
+const ROUTE_SWAP_MS = SHELL_MORPH_MS + 40;
+const ARCHIVE_UNLOAD_MS = 560;
+const BOT_SETTLE_MS = 860;
 const BOT_MESSAGES = [
   "Читайте внимательно!",
   "Да, я это собрал сам!",
@@ -190,7 +196,11 @@ function getBotRect(phase: FlowPhase, viewport: Viewport): Rect {
     return getIntroBotRect(viewport);
   }
 
-  if (phase === "archive") {
+  if (
+    phase === "archive" ||
+    phase === "settlingArchive" ||
+    phase === "preparingArticle"
+  ) {
     return getArchiveBotRect(viewport);
   }
 
@@ -235,6 +245,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
   const location = useLocation();
   const shouldReduceMotion = useReducedMotion();
   const timers = useRef<number[]>([]);
+  const pendingRouteTransition = useRef<"article" | "archive" | null>(null);
   const [phase, setPhase] = useState<FlowPhase>(() =>
     getInitialPhase(location.pathname),
   );
@@ -263,13 +274,27 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
       : botRect;
   const shellShouldRender = phase !== "intro" && phase !== "movingToArchive";
   const isResetTip = phase === "archive" && botMessageIndex === 3;
-  const isArchive =
-    phase === "openingArchive" ||
-    phase === "archive" ||
-    phase === "closingToArticle";
+  const botIsActive =
+    (phase !== "archive" && phase !== "ready") ||
+    assistantPanelActive ||
+    isResetTip;
   const isArticle =
     phase === "closingToArchive" ||
     phase === "openingArticle" ||
+    phase === "thinking" ||
+    phase === "streaming" ||
+    phase === "ready";
+  const isShellMorph =
+    phase === "movingToArchive" ||
+    phase === "openingArchive" ||
+    phase === "settlingArchive" ||
+    phase === "closingToArticle" ||
+    phase === "closingToArchive" ||
+    phase === "openingArticle";
+  const archiveIsLeaving = phase === "preparingArticle";
+  const showArchiveContent = phase === "archive" || archiveIsLeaving;
+  const showArticleContent =
+    phase === "closingToArchive" ||
     phase === "thinking" ||
     phase === "streaming" ||
     phase === "ready";
@@ -302,9 +327,24 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     const timer = window.setTimeout(() => {
       if (pathArticleId) {
         setSelectedArticleId(pathArticleId);
+
+        if (pendingRouteTransition.current === "article") {
+          pendingRouteTransition.current = null;
+          return;
+        }
+
         if (phase === "intro" || phase === "archive") {
           setPhase("ready");
         }
+        return;
+      }
+
+      if (pendingRouteTransition.current === "article") {
+        return;
+      }
+
+      if (pendingRouteTransition.current === "archive") {
+        pendingRouteTransition.current = null;
         return;
       }
 
@@ -325,7 +365,14 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     clearTimers();
 
     if (phase === "openingArchive") {
-      schedule(() => setPhase("archive"), shouldReduceMotion ? 80 : 1180);
+      schedule(
+        () => setPhase("settlingArchive"),
+        shouldReduceMotion ? 80 : SHELL_MORPH_MS,
+      );
+    }
+
+    if (phase === "settlingArchive") {
+      schedule(() => setPhase("archive"), shouldReduceMotion ? 80 : BOT_SETTLE_MS);
     }
 
     if (phase === "movingToArchive") {
@@ -335,18 +382,27 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
       );
     }
 
+    if (phase === "preparingArticle") {
+      schedule(
+        () => setPhase("closingToArticle"),
+        shouldReduceMotion ? 80 : ARCHIVE_UNLOAD_MS,
+      );
+    }
+
     if (phase === "closingToArticle") {
       schedule(() => {
-        navigate(`/article/${selectedArticle.id}`);
+        pendingRouteTransition.current = "article";
         setPhase("openingArticle");
-      }, shouldReduceMotion ? 80 : 620);
+        navigate(`/article/${selectedArticle.id}`);
+      }, shouldReduceMotion ? 80 : ROUTE_SWAP_MS);
     }
 
     if (phase === "closingToArchive") {
       schedule(() => {
-        navigate("/");
+        pendingRouteTransition.current = "archive";
         setPhase("openingArchive");
-      }, shouldReduceMotion ? 80 : 620);
+        navigate("/");
+      }, shouldReduceMotion ? 80 : ROUTE_SWAP_MS);
     }
 
     if (phase === "openingArticle") {
@@ -374,7 +430,8 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     if (phase !== "archive") return;
     rememberActivated();
     setSelectedArticleId(article.id);
-    setPhase("closingToArticle");
+    setAssistantPanelActive(false);
+    setPhase("preparingArticle");
   };
 
   const backToArchive = () => {
@@ -397,6 +454,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
 
   const restartFlow = () => {
     clearTimers();
+    pendingRouteTransition.current = null;
     navigate("/");
     setAssistantPanelActive(false);
     setBotMessageIndex(0);
@@ -432,34 +490,59 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
           opacity: shellShouldRender ? 1 : 0,
         }}
         transition={{
-          duration: shouldReduceMotion ? 0.01 : 0.96,
+          duration: shouldReduceMotion ? 0.01 : SHELL_MORPH_MS / 1000,
           ease: [0.16, 1, 0.3, 1],
         }}
       >
         <span className="flow-shell__shine" aria-hidden="true" />
+        <AnimatePresence>
+          {isShellMorph && (
+            <motion.span
+              key="transition-skin"
+              className="flow-shell__transition-skin"
+              aria-hidden="true"
+              initial={{ opacity: 0, scale: 0.985 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.015 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            />
+          )}
+        </AnimatePresence>
         <AnimatePresence mode="wait">
-          {isArchive && phase !== "openingArchive" && (
+          {showArchiveContent && (
             <motion.div
               key="archive"
-              className="flow-shell-content flow-archive-content"
+              className={`flow-shell-content flow-archive-content ${
+                archiveIsLeaving ? "flow-archive-content--leaving" : ""
+              }`}
               initial={{ opacity: 0, scale: 0.98 }}
-              animate={{
-                opacity: phase === "closingToArticle" ? 0 : 1,
-                scale: phase === "closingToArticle" ? 0.94 : 1,
-              }}
-              exit={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.985 }}
               transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
             >
               <div className="flow-archive-layout">
                 <section className="flow-archive-files" aria-label="Статьи">
-                  <header className="archive-topbar" aria-label="Нейроархив">
+                  <motion.header
+                    className="archive-topbar"
+                    aria-label="Нейроархив"
+                    animate={
+                      archiveIsLeaving
+                        ? { opacity: 0, y: -12, scale: 0.985 }
+                        : { opacity: 1, y: 0, scale: 1 }
+                    }
+                    transition={{
+                      delay: archiveIsLeaving ? 0.16 : 0,
+                      duration: archiveIsLeaving ? 0.24 : 0.36,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                  >
                     <span className="window-dots" aria-hidden="true">
                       <span />
                       <span />
                       <span />
                     </span>
                     <span className="archive-path">Нейроархив / недели</span>
-                  </header>
+                  </motion.header>
 
                   <div className="folder-grid">
                     {articles.map((article, index) => (
@@ -467,20 +550,26 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
                         key={article.id}
                         article={article}
                         index={index}
+                        isLeaving={archiveIsLeaving}
                         onOpen={openArticle}
                       />
                     ))}
                   </div>
                 </section>
 
-                <aside className="flow-assistant-rail" aria-label="Ассистент">
+                <aside
+                  className={`flow-assistant-rail ${
+                    archiveIsLeaving ? "flow-assistant-rail--leaving" : ""
+                  }`}
+                  aria-label="Ассистент"
+                >
                   <span className="flow-assistant-rail__divider" aria-hidden="true" />
                   <motion.div
-                    className={`flow-assistant-copy ${
+                    className={`flow-assistant-copy flow-assistant-copy--visible ${
                       assistantPanelActive || isResetTip
                         ? "flow-assistant-copy--active"
                         : ""
-                    }`}
+                    } ${isResetTip ? "flow-assistant-copy--reset" : ""}`}
                     initial={{ opacity: 0, y: 14, filter: "blur(10px)" }}
                     animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                     transition={{
@@ -522,27 +611,16 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
             </motion.div>
           )}
 
-          {isArticle && (
+          {showArticleContent && (
             <motion.div
               key="article"
               className="flow-shell-content flow-article-content"
               initial={{ opacity: 0, y: 20, filter: "blur(12px)" }}
               animate={{
-                opacity:
-                  phase === "openingArticle" || phase === "closingToArchive"
-                    ? 0
-                    : 1,
-                y:
-                  phase === "openingArticle"
-                    ? 20
-                    : phase === "closingToArchive"
-                      ? -12
-                      : 0,
+                opacity: phase === "closingToArchive" ? 0 : 1,
+                y: phase === "closingToArchive" ? -12 : 0,
                 scale: phase === "closingToArchive" ? 0.94 : 1,
-                filter:
-                  phase === "openingArticle" || phase === "closingToArchive"
-                    ? "blur(12px)"
-                    : "blur(0px)",
+                filter: "blur(0px)",
               }}
               exit={{ opacity: 0, y: 18 }}
               transition={{ duration: 0.56, ease: [0.22, 1, 0.36, 1] }}
@@ -570,7 +648,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
               </button>
 
               <AnimatePresence mode="wait">
-                {phase === "openingArticle" || phase === "thinking" ? (
+                {phase === "thinking" ? (
                   <SkeletonThought />
                 ) : (
                   <motion.div
@@ -594,9 +672,11 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
       </motion.div>
 
       <LivingOrbButton
-        className={`flow-bot ${phase === "archive" ? "flow-bot--archive" : ""}`}
+        className={`flow-bot ${phase === "archive" ? "flow-bot--archive" : ""} ${
+          isResetTip ? "flow-bot--reset-tip" : ""
+        }`}
         image={selectedArticle.botThinkingImage ?? BOT_IMAGE}
-        active={phase !== "archive" || assistantPanelActive || isResetTip}
+        active={botIsActive}
         ariaLabel="Управлять нейроархивом"
         onClick={handleBotClick}
         onPointerEnter={() => phase === "archive" && setAssistantPanelActive(true)}
@@ -607,6 +687,8 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
           (phase === "intro" && !introBotArrived) ||
           phase === "movingToArchive" ||
           phase === "openingArchive" ||
+          phase === "settlingArchive" ||
+          phase === "preparingArticle" ||
           phase === "closingToArticle" ||
           phase === "closingToArchive" ||
           phase === "openingArticle" ||

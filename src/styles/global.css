@@ -75,6 +75,7 @@ a {
 }
 
 .flow-stage--openingArchive .grid-field,
+.flow-stage--settlingArchive .grid-field,
 .flow-stage--archive .grid-field,
 .flow-stage--preparingArticle .grid-field,
 .flow-stage--closingToArticle .grid-field,
@@ -395,6 +396,10 @@ a {
   cursor: default;
 }
 
+.flow-bot--reset-tip {
+  pointer-events: none;
+}
+
 .flow-bot--hidden {
   pointer-events: none;
 }
@@ -429,7 +434,6 @@ a {
   filter: grayscale(1) brightness(2.2) blur(8px);
 }
 
-.flow-bot--materializing .living-orb__particles,
 .flow-bot--materializing .living-orb__pulse {
   opacity: 0;
 }
@@ -462,6 +466,18 @@ a {
   background-size: 48px 48px;
   mask-image: linear-gradient(to bottom, transparent 3%, #000 32%, #000 72%, transparent 100%);
   animation: gridDrift 7.5s cubic-bezier(0.45, 0, 0.2, 1) infinite alternate;
+  animation-play-state: paused;
+}
+
+.intro-scene .grid-field,
+.flow-stage--intro .grid-field,
+.flow-stage--movingToArchive .grid-field,
+.flow-stage--openingArchive .grid-field,
+.flow-stage--settlingArchive .grid-field,
+.flow-stage--closingToArticle .grid-field,
+.flow-stage--closingToArchive .grid-field,
+.flow-stage--openingArticle .grid-field {
+  animation-play-state: running;
 }
 
 .grain-layer {
@@ -526,9 +542,16 @@ button.living-orb {
   opacity: var(--glow-opacity);
   transform: translateZ(-1px);
   animation: auraFlow 8s ease-in-out infinite;
+  animation-play-state: paused;
   transition:
     opacity 0.72s cubic-bezier(0.16, 1, 0.3, 1),
     filter 0.72s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.living-orb--active .living-orb__glow,
+.living-orb:hover .living-orb__glow,
+.living-orb:focus-visible .living-orb__glow {
+  animation-play-state: running;
 }
 
 .living-orb__material {
@@ -544,51 +567,6 @@ button.living-orb {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.34s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.living-orb__particles {
-  position: absolute;
-  inset: -42%;
-  z-index: 1;
-  border-radius: inherit;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.living-orb__particle {
-  --particle-x: 0px;
-  --particle-y: 0px;
-  --particle-tx: 0px;
-  --particle-ty: 0px;
-  --particle-delay: 0ms;
-  --particle-size: 5px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: var(--particle-size);
-  height: var(--particle-size);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow:
-    0 0 12px rgba(125, 211, 252, 0.42),
-    0 0 24px rgba(244, 114, 182, 0.18);
-  opacity: 0.2;
-  transform: translate3d(var(--particle-x), var(--particle-y), 0) scale(0.74);
-  transition:
-    opacity 0.52s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.72s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.living-orb__particle--1 {
-  background: #7dd3fc;
-}
-
-.living-orb__particle--2 {
-  background: #f9a8d4;
-}
-
-.living-orb__particle--3 {
-  background: #fde68a;
 }
 
 .living-orb__rim {
@@ -653,11 +631,6 @@ button.living-orb {
   opacity: 0.5;
 }
 
-.living-orb:hover .living-orb__particle,
-.living-orb:focus-visible .living-orb__particle {
-  animation: particleAttract 1.42s cubic-bezier(0.16, 1, 0.3, 1) var(--particle-delay) infinite;
-}
-
 .intro-orb {
   width: min(300px, 58vw);
 }
@@ -696,7 +669,6 @@ button.living-orb {
   filter: grayscale(1) brightness(2.2) blur(8px);
 }
 
-.intro-orb--materializing .living-orb__particles,
 .intro-orb--materializing .living-orb__pulse {
   opacity: 0;
 }
@@ -1067,6 +1039,14 @@ button.living-orb {
   filter: blur(38px);
   opacity: 0.34;
   animation: auraFlow 9s ease-in-out infinite;
+  animation-play-state: paused;
+}
+
+.flow-stage--thinking .article-orb,
+.flow-stage--streaming .article-orb,
+.article-scene:has(.article-reader--thinking) .article-orb,
+.article-scene:has(.article-reader--streaming) .article-orb {
+  animation-play-state: running;
 }
 
 .article-orb--one {
@@ -1132,6 +1112,12 @@ button.living-orb {
   filter: blur(32px);
   opacity: 0;
   animation: generationSweep 5.5s linear infinite;
+  animation-play-state: paused;
+}
+
+.flow-shell--streaming .generation-blur,
+.article-reader--streaming .generation-blur {
+  animation-play-state: running;
 }
 
 .article-reader--streaming .generation-blur {
@@ -1632,27 +1618,6 @@ button.living-orb {
   100% {
     transform: scale(1.22);
     opacity: 0;
-  }
-}
-
-@keyframes particleAttract {
-  0% {
-    opacity: 0;
-    transform: translate3d(var(--particle-x), var(--particle-y), 0) scale(0.58);
-  }
-
-  18% {
-    opacity: 0.88;
-  }
-
-  64% {
-    opacity: 0.72;
-    transform: translate3d(0, 0, 0) scale(0.86);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translate3d(var(--particle-tx), var(--particle-ty), 0) scale(0.18);
   }
 }
 
