@@ -381,6 +381,48 @@ a {
   scrollbar-gutter: stable;
 }
 
+.article-resize-handle {
+  position: absolute;
+  top: clamp(86px, 10vh, 132px);
+  bottom: clamp(28px, 5vh, 58px);
+  z-index: 8;
+  width: 22px;
+  padding: 0;
+  cursor: ew-resize;
+  border: 0;
+  background: transparent;
+  opacity: 0.18;
+  transition: opacity 0.18s ease;
+}
+
+.article-resize-handle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: min(168px, 42%);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.28);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.5),
+    0 14px 32px rgba(15, 23, 42, 0.16);
+  transform: translate(-50%, -50%);
+}
+
+.article-resize-handle:hover,
+.article-resize-handle:focus-visible {
+  opacity: 0.72;
+}
+
+.article-resize-handle--left {
+  left: -11px;
+}
+
+.article-resize-handle--right {
+  right: -11px;
+}
+
 .flow-thinking {
   margin-top: clamp(34px, 7vw, 82px);
 }
@@ -843,6 +885,9 @@ button.living-orb {
   --accent-a: #6ee7f9;
   --accent-b: #a78bfa;
   --accent-c: #fb7185;
+  --folder-a: #ac2954;
+  --folder-b: #d84c78;
+  --folder-c: #741934;
   position: relative;
   display: grid;
   min-height: 224px;
@@ -912,8 +957,8 @@ button.living-orb {
   height: 34px;
   border-radius: 15px 15px 7px 7px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.32), transparent 70%),
-    color-mix(in srgb, #f3d965, var(--accent-a) 8%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.34), transparent 70%),
+    color-mix(in srgb, var(--folder-b), white 18%);
 }
 
 .folder-body {
@@ -924,7 +969,7 @@ button.living-orb {
   border-radius: 18px 24px 24px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent 54%),
-    color-mix(in srgb, #dec34b, var(--accent-b) 7%);
+    linear-gradient(135deg, color-mix(in srgb, var(--folder-a), white 8%), color-mix(in srgb, var(--folder-c), black 4%));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
     inset 0 -1px 0 rgba(15, 23, 42, 0.08);
@@ -935,9 +980,9 @@ button.living-orb {
   z-index: -1;
   border-radius: 999px;
   background:
-    radial-gradient(circle at 30% 45%, var(--accent-a), transparent 34%),
-    radial-gradient(circle at 64% 58%, var(--accent-b), transparent 34%),
-    radial-gradient(circle at 84% 30%, var(--accent-c), transparent 30%);
+    radial-gradient(circle at 30% 45%, var(--folder-b), transparent 34%),
+    radial-gradient(circle at 64% 58%, var(--folder-a), transparent 34%),
+    radial-gradient(circle at 84% 30%, var(--folder-c), transparent 30%);
   filter: blur(18px);
   opacity: 0;
   transition: opacity 0.38s ease;
@@ -1290,8 +1335,8 @@ button.living-orb {
   margin: 0;
   color: #111318;
   font-family: var(--font-display);
-  font-size: clamp(2.3rem, 5vw, 5.6rem);
-  line-height: 0.92;
+  font-size: clamp(1.9rem, 3.4vw, 3.8rem);
+  line-height: 0.98;
   letter-spacing: 0;
 }
 
@@ -1423,9 +1468,15 @@ button.living-orb {
 }
 
 .article-content h2 {
-  margin: 54px 0 14px;
-  font-size: clamp(1.55rem, 2.2vw, 2.35rem);
-  line-height: 1.08;
+  margin: 44px 0 12px;
+  font-size: clamp(1.28rem, 1.5vw, 1.78rem);
+  line-height: 1.16;
+}
+
+.article-content h3 {
+  margin: 32px 0 10px;
+  font-size: clamp(1.12rem, 1.22vw, 1.36rem);
+  line-height: 1.2;
 }
 
 .article-content p,
@@ -1721,6 +1772,10 @@ button.living-orb {
 }
 
 @media (max-width: 760px) {
+  .article-resize-handle {
+    display: none;
+  }
+
   .flow-archive-layout {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(0, 1fr) auto;
@@ -1839,7 +1894,7 @@ button.living-orb {
   }
 
   .article-hero h1 {
-    font-size: clamp(2.05rem, 13vw, 4rem);
+    font-size: clamp(1.72rem, 9vw, 2.8rem);
   }
 
   .mdx-block {

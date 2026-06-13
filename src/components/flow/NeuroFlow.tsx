@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   type KeyboardEvent,
   type MouseEvent,
+  type PointerEvent as ReactPointerEvent,
   useEffect,
   useMemo,
   useRef,
@@ -57,7 +58,8 @@ const ARCHIVE_UNLOAD_MS = 560;
 const ARTICLE_UNLOAD_MS = 520;
 const BOT_SETTLE_MS = 860;
 const RESET_TO_INTRO_MS = 980;
-const ARTICLE_MAX_WIDTH = 1160;
+const ARTICLE_DEFAULT_WIDTH = 1160;
+const ARTICLE_MIN_WIDTH = 760;
 const BOT_MESSAGES = [
   "Читайте внимательно!",
   "Да, я это собрал сам!",
@@ -172,9 +174,17 @@ function getArchiveRect(viewport: Viewport): Rect {
   };
 }
 
-function getArticleRect(viewport: Viewport): Rect {
+function clampArticleWidth(width: number, viewport: Viewport) {
   const inset = getInset(viewport.width);
-  const width = Math.min(ARTICLE_MAX_WIDTH, viewport.width - inset * 2);
+  const maxWidth = viewport.width - inset * 2;
+  const minWidth = Math.min(ARTICLE_MIN_WIDTH, maxWidth);
+
+  return Math.max(minWidth, Math.min(maxWidth, width));
+}
+
+function getArticleRect(viewport: Viewport, articleWidth: number): Rect {
+  const inset = getInset(viewport.width);
+  const width = clampArticleWidth(articleWidth, viewport);
 
   return {
     x: (viewport.width - width) / 2,
@@ -202,7 +212,11 @@ function isReadableArticlePhase(phase: FlowPhase) {
   );
 }
 
-function getShellRect(phase: FlowPhase, viewport: Viewport): Rect {
+function getShellRect(
+  phase: FlowPhase,
+  viewport: Viewport,
+  articleWidth: number,
+): Rect {
   if (phase === "intro" || phase === "resettingToIntro") {
     return getIntroBotRect(viewport);
   }
@@ -216,7 +230,7 @@ function getShellRect(phase: FlowPhase, viewport: Viewport): Rect {
     phase === "streaming" ||
     phase === "ready"
   ) {
-    return getArticleRect(viewport);
+    return getArticleRect(viewport, articleWidth);
   }
 
   return getArchiveRect(viewport);
@@ -290,13 +304,14 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
   const [assistantPanelActive, setAssistantPanelActive] = useState(false);
   const [botMessageIndex, setBotMessageIndex] = useState(0);
   const [botInteractionCount, setBotInteractionCount] = useState(0);
+  const [articleWidth, setArticleWidth] = useState(ARTICLE_DEFAULT_WIDTH);
 
   const selectedArticle = useMemo(
     () => getArticleById(articles, selectedArticleId),
     [articles, selectedArticleId],
   );
 
-  const shellRect = getShellRect(phase, viewport);
+  const shellRect = getShellRect(phase, viewport, articleWidth);
   const botRect = getBotRect(phase, viewport);
   const renderedBotRect =
     phase === "intro" && !introBotArrived
@@ -345,6 +360,9 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     phase === "thinking" ||
     phase === "streaming" ||
     phase === "ready";
+  const articleCanResize =
+    viewport.width > 760 &&
+    (phase === "thinking" || phase === "streaming" || phase === "ready");
 
   const clearTimers = () => {
     timers.current.forEach((timer) => window.clearTimeout(timer));
@@ -572,6 +590,73 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     handleBotClick();
   };
 
+  const resizeArticleBy = (delta: number) => {
+    setArticleWidth((width) => clampArticleWidth(width + delta, viewport));
+  };
+
+  const handleArticleResizeKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    side: "left" | "right",
+  ) => {
+    const step = event.shiftKey ? 96 : 32;
+
+    if (side === "left") {
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        resizeArticleBy(step);
+      }
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        resizeArticleBy(-step);
+      }
+      return;
+    }
+
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      resizeArticleBy(step);
+    }
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      resizeArticleBy(-step);
+    }
+  };
+
+  const startArticleResize = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    side: "left" | "right",
+  ) => {
+    if (!articleCanResize) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startX = event.clientX;
+    const startWidth = shellRect.width;
+    const direction = side === "left" ? -1 : 1;
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
+
+    document.body.style.cursor = "ew-resize";
+    document.body.style.userSelect = "none";
+
+    const handleMove = (moveEvent: PointerEvent) => {
+      const delta = (moveEvent.clientX - startX) * direction * 2;
+      setArticleWidth(clampArticleWidth(startWidth + delta, viewport));
+    };
+
+    const stopResize = () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointercancel", stopResize);
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+    };
+
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", stopResize, { once: true });
+    window.addEventListener("pointercancel", stopResize, { once: true });
+  };
+
   const restartFlow = () => {
     clearTimers();
     clearAssistantCloseTimer();
@@ -671,7 +756,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
                       <span />
                       <span />
                     </span>
-                    <span className="archive-path">Нейроархив / недели</span>
+                    <span className="archive-path">Конспекты по обществознанию</span>
                   </motion.header>
 
                   <div className="folder-grid">
@@ -825,6 +910,24 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
             </motion.div>
           )}
         </AnimatePresence>
+        {articleCanResize && (
+          <>
+            <button
+              type="button"
+              className="article-resize-handle article-resize-handle--left"
+              aria-label="Изменить ширину статьи слева"
+              onPointerDown={(event) => startArticleResize(event, "left")}
+              onKeyDown={(event) => handleArticleResizeKeyDown(event, "left")}
+            />
+            <button
+              type="button"
+              className="article-resize-handle article-resize-handle--right"
+              aria-label="Изменить ширину статьи справа"
+              onPointerDown={(event) => startArticleResize(event, "right")}
+              onKeyDown={(event) => handleArticleResizeKeyDown(event, "right")}
+            />
+          </>
+        )}
       </motion.div>
 
       <LivingOrbButton

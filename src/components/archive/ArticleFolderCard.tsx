@@ -10,6 +10,15 @@ type ArticleFolderCardProps = {
   onOpen: (article: ArticleConfig) => void;
 };
 
+const folderPalette = [
+  ["#ac2954", "#d84c78", "#741934"],
+  ["#be315e", "#e5688f", "#882044"],
+  ["#9b234c", "#c93d69", "#f08aa7"],
+  ["#b52b57", "#da5a80", "#6f1837"],
+  ["#c63a67", "#ef7899", "#8a1d43"],
+  ["#a12650", "#cf4a73", "#f3a1b8"],
+];
+
 function useCoarsePointer() {
   const [isCoarse, setIsCoarse] = useState(false);
 
@@ -33,11 +42,15 @@ export function ArticleFolderCard({
   const [isOpen, setIsOpen] = useState(false);
   const shouldReduceMotion = useReducedMotion();
   const isCoarsePointer = useCoarsePointer();
+  const folderAccent = folderPalette[index % folderPalette.length];
 
   const accentStyle = {
     "--accent-a": article.accent[0],
     "--accent-b": article.accent[1],
     "--accent-c": article.accent[2],
+    "--folder-a": folderAccent[0],
+    "--folder-b": folderAccent[1],
+    "--folder-c": folderAccent[2],
   } as CSSProperties;
 
   const previewFan = [

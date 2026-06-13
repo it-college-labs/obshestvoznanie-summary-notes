@@ -106,7 +106,7 @@ export function ArchiveScene({
               <span />
               <span />
             </span>
-            <span className="archive-path">Нейроархив / недели</span>
+            <span className="archive-path">Конспекты по обществознанию</span>
           </header>
 
           <div className="folder-grid">
