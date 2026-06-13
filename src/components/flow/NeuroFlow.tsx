@@ -1,6 +1,13 @@
 import { ArrowLeft } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  type KeyboardEvent,
+  type MouseEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArticleFolderCard } from "../archive/ArticleFolderCard";
 import { StreamingArticle, type GenerationPhase } from "../article/StreamingArticle";
@@ -50,6 +57,7 @@ const ARCHIVE_UNLOAD_MS = 560;
 const ARTICLE_UNLOAD_MS = 520;
 const BOT_SETTLE_MS = 860;
 const RESET_TO_INTRO_MS = 980;
+const ARTICLE_MAX_WIDTH = 1160;
 const BOT_MESSAGES = [
   "Читайте внимательно!",
   "Да, я это собрал сам!",
@@ -166,7 +174,7 @@ function getArchiveRect(viewport: Viewport): Rect {
 
 function getArticleRect(viewport: Viewport): Rect {
   const inset = getInset(viewport.width);
-  const width = Math.min(1040, viewport.width - inset * 2);
+  const width = Math.min(ARTICLE_MAX_WIDTH, viewport.width - inset * 2);
 
   return {
     x: (viewport.width - width) / 2,
@@ -182,6 +190,15 @@ function isTransferPhase(phase: FlowPhase) {
     phase === "movingToArchive" ||
     phase === "closingToArticle" ||
     phase === "closingToArchive"
+  );
+}
+
+function isReadableArticlePhase(phase: FlowPhase) {
+  return (
+    phase === "openingArticle" ||
+    phase === "thinking" ||
+    phase === "streaming" ||
+    phase === "ready"
   );
 }
 
@@ -259,6 +276,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
   const location = useLocation();
   const shouldReduceMotion = useReducedMotion();
   const timers = useRef<number[]>([]);
+  const assistantCloseTimer = useRef<number | null>(null);
   const pendingRouteTransition = useRef<"article" | "archive" | null>(null);
   const [phase, setPhase] = useState<FlowPhase>(() =>
     getInitialPhase(location.pathname),
@@ -333,12 +351,39 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     timers.current = [];
   };
 
+  const clearAssistantCloseTimer = () => {
+    if (assistantCloseTimer.current === null) return;
+    window.clearTimeout(assistantCloseTimer.current);
+    assistantCloseTimer.current = null;
+  };
+
+  const showAssistantPanel = () => {
+    if (phase !== "archive") return;
+    clearAssistantCloseTimer();
+    setAssistantPanelActive(true);
+  };
+
+  const hideAssistantPanel = () => {
+    if (phase !== "archive" || isResetTip) return;
+    clearAssistantCloseTimer();
+    assistantCloseTimer.current = window.setTimeout(() => {
+      setAssistantPanelActive(false);
+      assistantCloseTimer.current = null;
+    }, 70);
+  };
+
   const schedule = (callback: () => void, delay: number) => {
     const timer = window.setTimeout(callback, delay);
     timers.current.push(timer);
   };
 
-  useEffect(() => clearTimers, []);
+  useEffect(
+    () => () => {
+      clearTimers();
+      clearAssistantCloseTimer();
+    },
+    [],
+  );
 
   useEffect(() => {
     if (phase !== "intro" || introBotArrived) return;
@@ -509,13 +554,27 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
       return;
     }
 
-    if (phase === "ready") {
+    if (isReadableArticlePhase(phase)) {
       backToArchive();
     }
   };
 
+  const handleRailClick = (event: MouseEvent<HTMLElement>) => {
+    if (phase !== "archive") return;
+    if ((event.target as HTMLElement).closest("button")) return;
+    handleBotClick();
+  };
+
+  const handleRailKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (phase !== "archive") return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    handleBotClick();
+  };
+
   const restartFlow = () => {
     clearTimers();
+    clearAssistantCloseTimer();
     setAssistantPanelActive(false);
     setPhase("resettingToIntro");
   };
@@ -648,12 +707,21 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
                     duration: shouldReduceMotion ? 0.16 : archiveIsLeaving ? 0.2 : 0.46,
                     ease: [0.16, 1, 0.3, 1],
                   }}
+                  role={phase === "archive" ? "button" : undefined}
+                  tabIndex={phase === "archive" ? 0 : -1}
+                  onClick={handleRailClick}
+                  onKeyDown={handleRailKeyDown}
+                  onPointerEnter={showAssistantPanel}
+                  onPointerLeave={hideAssistantPanel}
                 >
+                  <span className="flow-assistant-rail__base" aria-hidden="true" />
+                  <span className="flow-assistant-rail__grid" aria-hidden="true" />
+                  <span className="flow-assistant-rail__halo" aria-hidden="true" />
                   <span className="flow-assistant-rail__divider" aria-hidden="true" />
                   <AnimatePresence>
                     {assistantCopyVisible && (
                       <motion.div
-                        className={`flow-assistant-copy flow-assistant-copy--visible flow-assistant-copy--active ${
+                        className={`flow-assistant-copy ${
                           isResetTip ? "flow-assistant-copy--reset" : ""
                         }`}
                         initial={{ opacity: 0, y: 14, scale: 0.965 }}
@@ -767,10 +835,8 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
         active={botIsActive}
         ariaLabel="Управлять нейроархивом"
         onClick={handleBotClick}
-        onPointerEnter={() => phase === "archive" && setAssistantPanelActive(true)}
-        onPointerLeave={() =>
-          phase === "archive" && !isResetTip && setAssistantPanelActive(false)
-        }
+        onPointerEnter={showAssistantPanel}
+        onPointerLeave={hideAssistantPanel}
         disabled={
           (phase === "intro" && !introBotArrived) ||
           phase === "movingToArchive" ||
@@ -780,10 +846,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
           phase === "closingToArticle" ||
           phase === "preparingArchive" ||
           phase === "closingToArchive" ||
-          phase === "resettingToIntro" ||
-          phase === "openingArticle" ||
-          phase === "thinking" ||
-          phase === "streaming"
+          phase === "resettingToIntro"
         }
         initial={false}
         animate={{

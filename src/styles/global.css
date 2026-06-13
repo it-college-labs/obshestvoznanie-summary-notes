@@ -88,6 +88,7 @@ a {
 }
 
 .flow-shell {
+  --shell-content-inset: clamp(16px, 2vw, 24px);
   position: fixed;
   top: 0;
   left: 0;
@@ -160,7 +161,7 @@ a {
 
 .flow-shell-content {
   position: absolute;
-  inset: clamp(16px, 2vw, 24px);
+  inset: var(--shell-content-inset);
   z-index: 2;
   min-width: 0;
   min-height: 0;
@@ -174,22 +175,6 @@ a {
 
 .flow-archive-content--leaving {
   overflow: hidden;
-  pointer-events: none;
-}
-
-.flow-archive-content--leaving .folder-grid {
-  overflow: hidden;
-  opacity: 0;
-  transform: translate3d(0, 10px, 0) scale(0.985);
-  transition:
-    opacity 0.18s ease,
-    transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.flow-archive-content--leaving .article-folder,
-.flow-archive-content--leaving .preview-stack,
-.flow-archive-content--leaving .preview-card {
-  opacity: 0;
   pointer-events: none;
 }
 
@@ -225,10 +210,7 @@ a {
   isolation: isolate;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 30px;
-  background:
-    radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.22), transparent 0 21%, rgba(124, 58, 237, 0) 44%),
-    radial-gradient(circle at 42% 58%, rgba(20, 184, 166, 0.14), transparent 34%),
-    linear-gradient(155deg, rgba(18, 20, 31, 0.98), rgba(8, 10, 16, 0.98));
+  background: transparent;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.1),
     inset 0 -34px 90px rgba(0, 0, 0, 0.22),
@@ -237,32 +219,48 @@ a {
   color: #f8fafc;
   opacity: 1;
   transform: translateZ(0);
-  transition:
-    opacity 0.26s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: opacity, transform;
+  backface-visibility: hidden;
+  contain: paint;
+}
+
+.flow-assistant-rail[role="button"] {
+  cursor: pointer;
 }
 
 .flow-assistant-rail--leaving {
-  opacity: 0;
-  transform: translate3d(22px, 0, 0) scale(0.985);
+  pointer-events: none;
 }
 
-.flow-assistant-rail::before {
-  content: "";
+.flow-assistant-rail__base,
+.flow-assistant-rail__grid,
+.flow-assistant-rail__halo {
   position: absolute;
+  pointer-events: none;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+.flow-assistant-rail__base {
   inset: 0;
   z-index: 0;
   background:
-    linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
-  background-size: 42px 42px;
-  mask-image: radial-gradient(circle at 50% 50%, black 0 48%, transparent 78%);
-  opacity: 0.72;
+    radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.22), transparent 0 21%, rgba(124, 58, 237, 0) 44%),
+    radial-gradient(circle at 42% 58%, rgba(20, 184, 166, 0.14), transparent 34%),
+    linear-gradient(155deg, rgba(18, 20, 31, 0.98), rgba(8, 10, 16, 0.98));
 }
 
-.flow-assistant-rail::after {
-  content: "";
+.flow-assistant-rail__grid {
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 42px 42px;
+  opacity: 0.52;
+}
+
+.flow-assistant-rail__halo {
   position: absolute;
   inset: 18%;
   z-index: 1;
@@ -273,15 +271,16 @@ a {
     radial-gradient(circle at 50% 72%, rgba(74, 222, 128, 0.16), transparent 38%);
   filter: blur(36px);
   opacity: 0.58;
-  transform: scale(0.95);
+  transform: translate3d(0, 0, 0) scale(0.95);
   transition:
     opacity 0.42s cubic-bezier(0.16, 1, 0.3, 1),
     transform 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
 }
 
-.flow-assistant-rail--copy-active::after {
+.flow-assistant-rail--copy-active .flow-assistant-rail__halo {
   opacity: 0.88;
-  transform: scale(1.08);
+  transform: translate3d(0, 0, 0) scale(1.08);
 }
 
 .flow-assistant-rail__divider {
@@ -316,25 +315,10 @@ a {
   justify-items: center;
   gap: 12px;
   color: rgba(248, 250, 252, 0.94);
-  opacity: 0;
   pointer-events: none;
   text-align: center;
   text-shadow: 0 12px 42px rgba(0, 0, 0, 0.54);
-  transform: translate3d(0, 16px, 0);
-  transition:
-    opacity 0.46s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.46s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
-}
-
-.flow-assistant-copy--visible {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translate3d(0, 0, 0);
-}
-
-.flow-assistant-copy--visible.flow-assistant-copy--active {
-  transform: translate3d(0, -2px, 0);
 }
 
 .flow-assistant-copy--reset {
@@ -359,6 +343,7 @@ a {
 .flow-assistant-copy__button {
   position: relative;
   z-index: 3;
+  pointer-events: auto;
   width: fit-content;
   min-height: 42px;
   padding: 10px 20px;
@@ -377,7 +362,6 @@ a {
     background 0.22s ease,
     border-color 0.22s ease,
     color 0.22s ease,
-    transform 0.22s ease,
     box-shadow 0.22s ease;
 }
 
@@ -388,7 +372,6 @@ a {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.16),
     0 18px 38px rgba(0, 0, 0, 0.34);
-  transform: translateY(-1px);
 }
 
 .flow-article-content {
@@ -1104,7 +1087,7 @@ button.living-orb {
 
 .article-reader {
   position: relative;
-  width: min(1040px, 100%);
+  width: min(1160px, 100%);
   min-height: calc(100vh - var(--page-inset) * 2);
   margin: 0 auto;
   padding: clamp(20px, 4vw, 54px);
@@ -1777,15 +1760,6 @@ button.living-orb {
     width: 100%;
     justify-items: start;
     text-align: left;
-    transform: translate3d(0, 10px, 0);
-  }
-
-  .flow-assistant-copy--visible {
-    transform: translate3d(0, 0, 0);
-  }
-
-  .flow-assistant-copy--visible.flow-assistant-copy--active {
-    transform: translate3d(0, -1px, 0);
   }
 
   .flow-assistant-copy__message {
