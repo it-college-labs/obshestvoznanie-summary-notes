@@ -14,6 +14,8 @@
   --ink: #15181f;
   --muted: #667085;
   --paper: #f5f2eb;
+  --paper-panel: #141413;
+  --paper-panel-soft: #20201d;
 }
 
 * {
@@ -197,6 +199,7 @@ a {
 .flow-archive-files {
   position: relative;
   display: flex;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   flex-direction: column;
@@ -840,27 +843,31 @@ button.living-orb {
   position: relative;
   z-index: 2;
   display: flex;
+  width: 100%;
   min-height: 48px;
   align-items: center;
   gap: 14px;
-  margin-bottom: clamp(20px, 4vw, 36px);
-  padding: 8px 12px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.58);
-  box-shadow: none;
+  margin-bottom: 0;
+  padding: 10px 22px;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 29px 29px 0 0;
+  background: #20201d;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
 
 .window-dots {
   display: inline-flex;
-  gap: 7px;
+  gap: 8px;
 }
 
 .window-dots span {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #9aa3b2;
+  background: rgba(248, 250, 252, 0.44);
 }
 
 .window-dots span:nth-child(1) {
@@ -878,7 +885,7 @@ button.living-orb {
 .archive-path {
   min-width: 0;
   overflow: hidden;
-  color: #485162;
+  color: #f8fafc;
   font-family: var(--font-display);
   font-size: 0.93rem;
   font-weight: 780;
@@ -886,9 +893,39 @@ button.living-orb {
   white-space: nowrap;
 }
 
+.folder-cluster {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  margin-top: 0;
+  padding: 0;
+  overflow: visible;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 30px;
+  background: #141413;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -44px 90px rgba(0, 0, 0, 0.16),
+    0 22px 54px rgba(0, 0, 0, 0.08);
+}
+
+.folder-cluster::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: #141413;
+  pointer-events: none;
+}
+
 .folder-grid {
   position: relative;
-  z-index: 2;
+  z-index: 4;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
   gap: clamp(18px, 3vw, 34px) clamp(16px, 2vw, 24px);
@@ -896,7 +933,7 @@ button.living-orb {
   flex: 1 1 auto;
   min-height: 0;
   overflow: visible;
-  padding: clamp(4px, 1vw, 10px);
+  padding: clamp(24px, 3vw, 38px) clamp(18px, 2.5vw, 32px);
 }
 
 .article-folder {
@@ -916,13 +953,13 @@ button.living-orb {
   cursor: pointer;
   border-radius: 18px;
   background: transparent;
-  color: var(--ink);
+  color: #f8fafc;
 }
 
 .article-folder--open,
 .article-folder:hover,
 .article-folder:focus-visible {
-  z-index: 12;
+  z-index: 20;
 }
 
 .article-folder::before {
@@ -940,14 +977,14 @@ button.living-orb {
 
 .article-folder:hover::before,
 .article-folder--open::before {
-  border-color: rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.34);
-  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(172, 41, 84, 0.16);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.18);
 }
 
 .folder-icon {
   position: relative;
-  z-index: 5;
+  z-index: 10;
   width: 156px;
   height: 122px;
   margin-top: 16px;
@@ -1009,7 +1046,7 @@ button.living-orb {
   position: absolute;
   top: 48px;
   left: 50%;
-  z-index: 3;
+  z-index: 6;
   width: 156px;
   height: 122px;
   transform: translateX(-50%);
@@ -1047,7 +1084,7 @@ button.living-orb {
 
 .folder-label {
   position: relative;
-  z-index: 4;
+  z-index: 11;
   display: grid;
   max-width: 188px;
   gap: 4px;
@@ -1055,7 +1092,7 @@ button.living-orb {
 }
 
 .folder-week {
-  color: #697386;
+  color: rgba(248, 250, 252, 0.58);
   font-family: var(--font-display);
   font-size: 0.78rem;
   font-weight: 820;
@@ -1063,7 +1100,7 @@ button.living-orb {
 }
 
 .folder-title {
-  color: #161a22;
+  color: #f8fafc;
   font-family: var(--font-display);
   font-size: 1.04rem;
   font-weight: 820;
@@ -1516,6 +1553,7 @@ button.living-orb {
   color: #151922;
 }
 
+.mdx-text,
 .mdx-block,
 .mdx-key-idea,
 .mdx-table-wrap {
@@ -1523,24 +1561,46 @@ button.living-orb {
   margin: 24px 0;
 }
 
+.mdx-text {
+  display: grid;
+  gap: 14px;
+}
+
+.mdx-text > :first-child {
+  margin-top: 0;
+}
+
+.mdx-text > :last-child {
+  margin-bottom: 0;
+}
+
 .mdx-block {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 14px;
   padding: 18px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.68);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.035);
+  background: var(--paper-panel);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 14px 34px rgba(0, 0, 0, 0.08);
+  color: #f8fafc;
 }
 
 .mdx-block strong {
   display: block;
   margin-bottom: 5px;
+  color: #f8fafc;
 }
 
 .mdx-block p {
+  color: rgba(248, 250, 252, 0.78);
   margin: 0;
+}
+
+.mdx-block li {
+  color: rgba(248, 250, 252, 0.78);
 }
 
 .mdx-block-body > :first-child {
@@ -1557,24 +1617,23 @@ button.living-orb {
   height: 36px;
   place-items: center;
   border-radius: 12px;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--accent-a), white 26%), color-mix(in srgb, var(--accent-b), white 34%));
-  color: #172033;
+  background: #ac2954;
+  color: #f8fafc;
 }
 
 .mdx-key-idea {
   padding: clamp(22px, 4vw, 34px);
   border-radius: 24px;
-  border: 1px solid rgba(15, 23, 42, 0.055);
-  background:
-    radial-gradient(circle at 14% 8%, color-mix(in srgb, var(--accent-a), transparent 80%), transparent 34%),
-    rgba(255, 255, 255, 0.74);
-  color: #263040;
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--paper-panel-soft);
+  color: #f8fafc;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 14px 34px rgba(0, 0, 0, 0.08);
 }
 
 .mdx-key-idea span {
-  color: #596274;
+  color: #a78bfa;
   font-family: var(--font-display);
   font-size: 0.82rem;
   font-weight: 880;
@@ -1583,8 +1642,16 @@ button.living-orb {
 
 .mdx-key-idea__body {
   margin: 10px 0 0;
-  color: #3f4653;
+  color: rgba(248, 250, 252, 0.88);
   font-size: clamp(1.15rem, 1.6vw, 1.42rem);
+}
+
+.article-content .mdx-key-idea__body p,
+.article-content .mdx-key-idea__body li,
+.article-content .mdx-key-idea__body strong,
+.mdx-key-idea__body p,
+.mdx-key-idea__body strong {
+  color: inherit;
 }
 
 .mdx-key-idea__body > :first-child {
@@ -1596,7 +1663,7 @@ button.living-orb {
 }
 
 .mdx-trap {
-  background: rgba(255, 247, 237, 0.82);
+  background: #1b1b19;
 }
 
 .mdx-table-wrap {
@@ -1608,13 +1675,15 @@ button.living-orb {
   overscroll-behavior-x: contain;
   padding: 6px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.66);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.035);
+  background: var(--paper-panel);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 14px 34px rgba(0, 0, 0, 0.08);
 }
 
 .mdx-table-wrap figcaption {
   padding: 12px 12px 8px;
-  color: #667085;
+  color: rgba(248, 250, 252, 0.58);
   font-size: 0.9rem;
   font-weight: 740;
 }
@@ -1630,16 +1699,21 @@ button.living-orb {
 .mdx-table-wrap th,
 .mdx-table-wrap td {
   padding: 14px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(248, 250, 252, 0.78);
   text-align: left;
   vertical-align: top;
 }
 
 .mdx-table-wrap th {
-  background: rgba(15, 23, 42, 0.06);
-  color: #151922;
+  background: #20201d;
+  color: #f8fafc;
   font-size: 0.88rem;
   text-transform: uppercase;
+}
+
+.mdx-table-wrap strong {
+  color: #f8fafc;
 }
 
 @keyframes gridDrift {
@@ -1829,11 +1903,20 @@ button.living-orb {
 
   .archive-topbar {
     min-height: 44px;
+    padding-inline: 16px;
+    border-radius: 23px 23px 0 0;
   }
 
   .folder-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px 10px;
+    padding: 16px 10px;
+  }
+
+  .folder-cluster {
+    margin-top: 0;
+    padding: 0;
+    border-radius: 24px;
   }
 
   .article-folder {

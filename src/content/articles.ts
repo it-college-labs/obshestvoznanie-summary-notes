@@ -5,6 +5,15 @@ import SocietySystem from "./notes/week-03-society-as-system.mdx";
 import SocietyConcept from "./notes/week-04-society-concept.mdx";
 import TypesOfSociety from "./notes/week-05-types-of-society.mdx";
 import Evolution from "./notes/week-06-evolution.mdx";
+import CultureSpiritualLife from "./notes/week-07-culture-spiritual-life.mdx";
+import ScienceEducation from "./notes/week-08-science-education.mdx";
+import WorldReligions from "./notes/week-09-world-religions.mdx";
+import BankingCreditMortgage from "./notes/week-11-12-banking-credit-mortgage.mdx";
+import TaxesRussia from "./notes/week-13-taxes-russia.mdx";
+import FamilyMarriage from "./notes/week-14-family-marriage.mdx";
+import StratificationMobility from "./notes/week-15-stratification-mobility.mdx";
+import Migration from "./notes/week-16-migration.mdx";
+import SocialConflict from "./notes/week-17-social-conflict.mdx";
 import type { ArticleConfig } from "./types";
 
 const botThinkingImage = publicAsset("assets/placeholders/bot-placeholder.png");
@@ -116,6 +125,168 @@ export const articles: ArticleConfig[] = [
     botThinkingImage,
     mdx: Evolution,
     readingTime: "9 минут",
+    status: "ready",
+  },
+  {
+    id: "week-07-culture-spiritual-life",
+    week: "Неделя 7",
+    title: "Духовная деятельность, культура и субкультура",
+    annotation:
+      "Культура как среда смыслов: духовная деятельность, материальная и духовная культура, народная, элитарная и массовая формы, субкультура и контркультура.",
+    tags: ["культура", "духовная сфера", "субкультура"],
+    accent: ["#ac2954", "#d84c78", "#a78bfa"],
+    folderPreviewImages: [
+      publicAsset("assets/placeholders/preview-norms-01.svg"),
+      publicAsset("assets/placeholders/preview-norms-02.svg"),
+      publicAsset("assets/placeholders/preview-norms-03.svg"),
+    ],
+    botThinkingImage,
+    mdx: CultureSpiritualLife,
+    readingTime: "12 минут",
+    status: "ready",
+  },
+  {
+    id: "week-08-science-education",
+    week: "Неделя 8",
+    title: "Наука и образование",
+    annotation:
+      "Критерии научного знания, факты, гипотезы, теории, методы исследования, научно-технологическое развитие России и образование как социальный институт.",
+    tags: ["наука", "образование", "познание"],
+    accent: ["#ac2954", "#f472b6", "#60a5fa"],
+    folderPreviewImages: [
+      publicAsset("assets/placeholders/preview-norms-01.svg"),
+      publicAsset("assets/placeholders/preview-norms-02.svg"),
+      publicAsset("assets/placeholders/preview-norms-03.svg"),
+    ],
+    botThinkingImage,
+    mdx: ScienceEducation,
+    readingTime: "12 минут",
+    status: "ready",
+  },
+  {
+    id: "week-09-world-religions",
+    week: "Неделя 9",
+    title: "Религии мира",
+    annotation:
+      "Религия как социальный институт: функции, мировые религии, мораль, право, светское государство и культурное влияние религиозных традиций.",
+    tags: ["религия", "мировые религии", "духовная культура"],
+    accent: ["#ac2954", "#a78bfa", "#f59e0b"],
+    folderPreviewImages: [
+      publicAsset("assets/placeholders/preview-norms-01.svg"),
+      publicAsset("assets/placeholders/preview-norms-02.svg"),
+      publicAsset("assets/placeholders/preview-norms-03.svg"),
+    ],
+    botThinkingImage,
+    mdx: WorldReligions,
+    readingTime: "10 минут",
+    status: "ready",
+  },
+  {
+    id: "week-11-12-banking-credit-mortgage",
+    week: "Недели 11-12",
+    title: "Банковская система, кредиты и ипотека",
+    annotation:
+      "Финансовые институты, функции ЦБ и коммерческих банков, кредитные договоры, кредитная история, МФО и ипотека как долгосрочный финансовый выбор.",
+    tags: ["банки", "кредиты", "ипотека"],
+    accent: ["#ac2954", "#38bdf8", "#fbbf24"],
+    folderPreviewImages: [
+      publicAsset("assets/placeholders/preview-norms-01.svg"),
+      publicAsset("assets/placeholders/preview-norms-02.svg"),
+      publicAsset("assets/placeholders/preview-norms-03.svg"),
+    ],
+    botThinkingImage,
+    mdx: BankingCreditMortgage,
+    readingTime: "14 минут",
+    status: "ready",
+  },
+  {
+    id: "week-13-taxes-russia",
+    week: "Неделя 13",
+    title: "Налоги в России",
+    annotation:
+      "Налоги как обязательные платежи и социальный механизм: функции, ставки, прямые и косвенные налоги, НДФЛ, НДС, имущество, вклады и вычеты.",
+    tags: ["налоги", "НДФЛ", "НДС"],
+    accent: ["#ac2954", "#86efac", "#f97316"],
+    folderPreviewImages: [
+      publicAsset("assets/placeholders/preview-norms-01.svg"),
+      publicAsset("assets/placeholders/preview-norms-02.svg"),
+      publicAsset("assets/placeholders/preview-norms-03.svg"),
+    ],
+    botThinkingImage,
+    mdx: TaxesRussia,
+    readingTime: "13 минут",
+    status: "ready",
+  },
+  {
+    id: "week-14-family-marriage",
+    week: "Неделя 14",
+    title: "Семья и брак",
+    annotation:
+      "Семья как малая группа и социальный институт: брак, функции семьи, семейные ценности, подходы к анализу, гендерные роли и меры поддержки.",
+    tags: ["семья", "брак", "социальный институт"],
+    accent: ["#ac2954", "#f9a8d4", "#a78bfa"],
+    folderPreviewImages: [
+      publicAsset("assets/placeholders/preview-norms-01.svg"),
+      publicAsset("assets/placeholders/preview-norms-02.svg"),
+      publicAsset("assets/placeholders/preview-norms-03.svg"),
+    ],
+    botThinkingImage,
+    mdx: FamilyMarriage,
+    readingTime: "11 минут",
+    status: "ready",
+  },
+  {
+    id: "week-15-stratification-mobility",
+    week: "Неделя 15",
+    title: "Социальная стратификация и социальная мобильность",
+    annotation:
+      "Страты, исторические системы неравенства, критерии статуса, социальные роли, мобильность, каналы перемещения и коэффициент Джини.",
+    tags: ["стратификация", "мобильность", "неравенство"],
+    accent: ["#ac2954", "#c084fc", "#34d399"],
+    folderPreviewImages: [
+      publicAsset("assets/placeholders/preview-norms-01.svg"),
+      publicAsset("assets/placeholders/preview-norms-02.svg"),
+      publicAsset("assets/placeholders/preview-norms-03.svg"),
+    ],
+    botThinkingImage,
+    mdx: StratificationMobility,
+    readingTime: "12 минут",
+    status: "ready",
+  },
+  {
+    id: "week-16-migration",
+    week: "Неделя 16",
+    title: "Миграция",
+    annotation:
+      "Миграция как демографический и социальный процесс: типология, потоки и сальдо, мобильный переход, замещающая миграция и интеграция.",
+    tags: ["миграция", "демография", "интеграция"],
+    accent: ["#ac2954", "#67e8f9", "#fbbf24"],
+    folderPreviewImages: [
+      publicAsset("assets/placeholders/preview-norms-01.svg"),
+      publicAsset("assets/placeholders/preview-norms-02.svg"),
+      publicAsset("assets/placeholders/preview-norms-03.svg"),
+    ],
+    botThinkingImage,
+    mdx: Migration,
+    readingTime: "12 минут",
+    status: "ready",
+  },
+  {
+    id: "week-17-social-conflict",
+    week: "Неделя 17",
+    title: "Социальный конфликт",
+    annotation:
+      "Причины и формы конфликтов, стадии развития, классификации, переговоры, посредничество, арбитраж и разбор трудового конфликта.",
+    tags: ["конфликт", "переговоры", "социальные группы"],
+    accent: ["#ac2954", "#fb7185", "#f97316"],
+    folderPreviewImages: [
+      publicAsset("assets/placeholders/preview-norms-01.svg"),
+      publicAsset("assets/placeholders/preview-norms-02.svg"),
+      publicAsset("assets/placeholders/preview-norms-03.svg"),
+    ],
+    botThinkingImage,
+    mdx: SocialConflict,
+    readingTime: "11 минут",
     status: "ready",
   },
 ];

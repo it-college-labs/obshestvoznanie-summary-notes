@@ -24,6 +24,10 @@ type CompareTableProps = {
   rows: Array<Array<ReactNode>>;
 };
 
+function Text({ children }: WithChildren) {
+  return <div className="mdx-text">{children}</div>;
+}
+
 function Definition({ term, children }: DefinitionProps) {
   return (
     <aside className="mdx-block mdx-definition">
@@ -120,6 +124,8 @@ function Anchor(props: ComponentPropsWithoutRef<"a">) {
 }
 
 export const mdxComponents = {
+  Text,
+  PlainText: Text,
   Definition,
   Callout,
   Example,

@@ -732,6 +732,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
             >
               <div className="flow-archive-layout">
                 <section className="flow-archive-files" aria-label="Статьи">
+                  <div className="folder-cluster">
                   <motion.header
                     className="archive-topbar"
                     aria-label="Нейроархив"
@@ -759,16 +760,17 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
                     <span className="archive-path">Конспекты по обществознанию</span>
                   </motion.header>
 
-                  <div className="folder-grid">
-                    {articles.map((article, index) => (
-                      <ArticleFolderCard
-                        key={article.id}
-                        article={article}
-                        index={index}
-                        isLeaving={archiveIsLeaving}
-                        onOpen={openArticle}
-                      />
-                    ))}
+                    <div className="folder-grid">
+                      {articles.map((article, index) => (
+                        <ArticleFolderCard
+                          key={article.id}
+                          article={article}
+                          index={index}
+                          isLeaving={archiveIsLeaving}
+                          onOpen={openArticle}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </section>
 
