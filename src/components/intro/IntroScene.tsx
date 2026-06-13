@@ -24,7 +24,7 @@ export function IntroScene({ onActivate }: IntroSceneProps) {
   return (
     <motion.section
       className="intro-scene"
-      exit={{ opacity: 0, filter: "blur(18px)", scale: 0.98 }}
+      exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="grid-field" aria-hidden="true" />
@@ -37,12 +37,11 @@ export function IntroScene({ onActivate }: IntroSceneProps) {
         materialLayoutId="content-shell"
         ariaLabel="Открыть нейроархив"
         onClick={activate}
-        initial={{ opacity: 0, x: "34vw", scale: 0.72, filter: "blur(18px)" }}
+        initial={{ opacity: 0, x: "34vw", scale: 0.72 }}
         animate={{
           opacity: isActivating ? 0.96 : 1,
           x: isActivating ? "calc(50vw - 94px)" : 0,
           scale: isActivating ? 0.82 : [0.72, 1.08, 0.97, 1],
-          filter: isActivating ? "blur(2px) saturate(0.2)" : "blur(0px)",
         }}
         transition={{
           delay: isActivating ? 0 : botDelay,
