@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import { AlertTriangle, BookOpen, Brain, Lightbulb, Link2 } from "lucide-react";
+import { AlertTriangle, BookOpen, Brain, Lightbulb } from "lucide-react";
 
 type WithChildren = {
   children: ReactNode;
@@ -22,10 +22,6 @@ type CompareTableProps = {
   caption?: string;
   columns: string[];
   rows: Array<Array<ReactNode>>;
-};
-
-type RelatedTopicsProps = {
-  topics: string[];
 };
 
 function Definition({ term, children }: DefinitionProps) {
@@ -119,22 +115,6 @@ function CompareTable({ caption, columns, rows }: CompareTableProps) {
   );
 }
 
-function RelatedTopics({ topics }: RelatedTopicsProps) {
-  return (
-    <aside className="mdx-related">
-      <span>
-        <Link2 size={17} />
-        Связанные темы
-      </span>
-      <div>
-        {topics.map((topic) => (
-          <mark key={topic}>{topic}</mark>
-        ))}
-      </div>
-    </aside>
-  );
-}
-
 function Anchor(props: ComponentPropsWithoutRef<"a">) {
   return <a {...props} target="_blank" rel="noreferrer" />;
 }
@@ -146,6 +126,5 @@ export const mdxComponents = {
   CompareTable,
   KeyIdea,
   ExamTrap,
-  RelatedTopics,
   a: Anchor,
 };
