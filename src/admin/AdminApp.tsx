@@ -1,32 +1,39 @@
-import { Link, Navigate, Route, Routes } from "react-router-dom";
+import { useState } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { consumeAdminEntry } from "../adminEntry";
 import "./admin.css";
-import { useAuth } from "./useAuth";
+import { AuthProvider, useAuth } from "./useAuth";
 import { LoginPage } from "./LoginPage";
 import { ArticlesListPage } from "./ArticlesListPage";
 import { ArticleEditPage } from "./ArticleEditPage";
 import { UploadsPage } from "./UploadsPage";
 
-export default function AdminApp() {
+function AdminShell() {
   const { isAuthenticated, loading } = useAuth();
+  const [entryAllowed] = useState(() => consumeAdminEntry());
+
+  if (!entryAllowed) {
+    return <Navigate to="/" replace />;
+  }
 
   if (loading) {
-    return <div className="admin-loading">Проверка доступа…</div>;
+    return (
+      <div className="admin-app">
+        <div className="admin-loading">Проверка доступа…</div>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
-    return <LoginPage />;
+    return (
+      <div className="admin-app">
+        <LoginPage />
+      </div>
+    );
   }
 
   return (
     <div className="admin-app">
-      <nav className="admin-nav">
-        <span className="admin-nav__brand">Нейроархив · админка</span>
-        <div className="admin-nav__links">
-          <Link to="/admin/articles">Статьи</Link>
-          <Link to="/admin/uploads">Загрузки</Link>
-          <Link to="/">Сайт</Link>
-        </div>
-      </nav>
       <main className="admin-main">
         <Routes>
           <Route path="/" element={<Navigate to="/admin/articles" replace />} />
@@ -38,5 +45,13 @@ export default function AdminApp() {
         </Routes>
       </main>
     </div>
+  );
+}
+
+export default function AdminApp() {
+  return (
+    <AuthProvider>
+      <AdminShell />
+    </AuthProvider>
   );
 }

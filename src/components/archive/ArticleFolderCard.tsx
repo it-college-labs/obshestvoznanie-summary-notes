@@ -2,6 +2,7 @@ import { motion, useReducedMotion } from "motion/react";
 import type { CSSProperties } from "react";
 import { memo, useState } from "react";
 import type { ArticleListItem } from "../../api/types";
+import { publicAsset } from "../../content/assets";
 
 type ArticleFolderCardProps = {
   article: ArticleListItem;
@@ -97,7 +98,7 @@ function ArticleFolderCardComponent({
           <motion.img
             key={image}
             className={`preview-card preview-card--${previewIndex + 1}`}
-            src={image}
+            src={publicAsset(image)}
             alt=""
             draggable="false"
             initial={false}

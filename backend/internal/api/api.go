@@ -20,12 +20,14 @@ import (
 )
 
 type Server struct {
-	store  *store.Store
-	auth   *auth.Auth
-	upload *upload.Service
-	router *chi.Mux
+	store   *store.Store
+	auth    *auth.Auth
+	upload  *upload.Service
+	router  *chi.Mux
 	baseURL string
 }
+
+const maxUploadBytes = 10 << 20
 
 func New(st *store.Store, au *auth.Auth, up *upload.Service, baseURL string) *Server {
 	s := &Server{
@@ -97,6 +99,10 @@ func respondError(w http.ResponseWriter, status int, message string) {
 	respondJSON(w, status, map[string]string{"error": message})
 }
 
+func respondInternalError(w http.ResponseWriter) {
+	respondError(w, http.StatusInternalServerError, "internal server error")
+}
+
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
@@ -104,7 +110,7 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) listArticlesHandler(w http.ResponseWriter, r *http.Request) {
 	items, err := s.store.ListArticles(r.Context(), string(models.StatusPublished))
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondInternalError(w)
 		return
 	}
 	respondJSON(w, http.StatusOK, items)
@@ -123,7 +129,7 @@ func (s *Server) getArticleHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	public, err := render.RenderArticle(article)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondInternalError(w)
 		return
 	}
 	respondJSON(w, http.StatusOK, public)
@@ -136,7 +142,7 @@ func (s *Server) adminMeHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) adminListArticlesHandler(w http.ResponseWriter, r *http.Request) {
 	items, err := s.store.ListArticles(r.Context(), "")
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondInternalError(w)
 		return
 	}
 	respondJSON(w, http.StatusOK, items)
@@ -164,7 +170,7 @@ func (s *Server) adminCreateArticleHandler(w http.ResponseWriter, r *http.Reques
 	}
 	exists, err := s.store.ArticleExists(r.Context(), article.ID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondInternalError(w)
 		return
 	}
 	if exists {
@@ -178,7 +184,7 @@ func (s *Server) adminCreateArticleHandler(w http.ResponseWriter, r *http.Reques
 		article.Status = string(models.StatusDraft)
 	}
 	if err := s.store.CreateArticle(r.Context(), &article); err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondInternalError(w)
 		return
 	}
 	respondJSON(w, http.StatusCreated, article)
@@ -198,7 +204,7 @@ func (s *Server) adminUpdateArticleHandler(w http.ResponseWriter, r *http.Reques
 	}
 	article.UpdatedAt = time.Now()
 	if err := s.store.UpdateArticle(r.Context(), &article); err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondInternalError(w)
 		return
 	}
 	respondJSON(w, http.StatusOK, article)
@@ -207,7 +213,7 @@ func (s *Server) adminUpdateArticleHandler(w http.ResponseWriter, r *http.Reques
 func (s *Server) adminDeleteArticleHandler(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if err := s.store.DeleteArticle(r.Context(), id); err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondInternalError(w)
 		return
 	}
 	respondJSON(w, http.StatusOK, map[string]string{"deleted": id})
@@ -227,14 +233,15 @@ func (s *Server) adminPublishArticleHandler(w http.ResponseWriter, r *http.Reque
 		status = string(models.StatusPublished)
 	}
 	if err := s.store.SetArticleStatus(r.Context(), id, status); err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondInternalError(w)
 		return
 	}
 	respondJSON(w, http.StatusOK, map[string]string{"status": status})
 }
 
 func (s *Server) adminUploadHandler(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
+	if err := r.ParseMultipartForm(maxUploadBytes); err != nil {
 		respondError(w, http.StatusBadRequest, "invalid multipart form")
 		return
 	}
@@ -245,27 +252,28 @@ func (s *Server) adminUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
+	contentType := header.Header.Get("Content-Type")
 	if seeker, ok := file.(io.ReadSeeker); ok {
-		contentType := upload.SniffMimeType(seeker, header.Filename)
-		if !upload.AllowedMimeType(contentType) {
-			respondError(w, http.StatusBadRequest, "unsupported file type")
-			return
-		}
+		contentType = upload.SniffMimeType(seeker, header.Filename)
+	}
+	if !upload.AllowedMimeType(contentType) {
+		respondError(w, http.StatusBadRequest, "unsupported file type")
+		return
 	}
 
 	up := &models.Upload{
-		Filename: header.Filename,
-		MimeType: header.Header.Get("Content-Type"),
+		Filename:  header.Filename,
+		MimeType:  contentType,
 		CreatedAt: time.Now(),
 	}
 	filename, err := s.upload.Save(file, up)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondInternalError(w)
 		return
 	}
 	up.Path = filename
 	if err := s.store.CreateUpload(r.Context(), up); err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondInternalError(w)
 		return
 	}
 	respondJSON(w, http.StatusCreated, map[string]string{
@@ -278,25 +286,25 @@ func (s *Server) adminUploadHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) adminListUploadsHandler(w http.ResponseWriter, r *http.Request) {
 	uploads, err := s.store.ListUploads(r.Context())
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondInternalError(w)
 		return
 	}
 
 	type uploadDTO struct {
-		ID       string    `json:"id"`
-		Filename string    `json:"filename"`
-		URL      string    `json:"url"`
-		MimeType string    `json:"mimeType"`
+		ID        string    `json:"id"`
+		Filename  string    `json:"filename"`
+		URL       string    `json:"url"`
+		MimeType  string    `json:"mimeType"`
 		CreatedAt time.Time `json:"createdAt"`
 	}
 
 	items := make([]uploadDTO, len(uploads))
 	for i, u := range uploads {
 		items[i] = uploadDTO{
-			ID:       u.ID,
-			Filename: u.Filename,
-			URL:      s.upload.URL(u.Path),
-			MimeType: u.MimeType,
+			ID:        u.ID,
+			Filename:  u.Filename,
+			URL:       s.upload.URL(u.Path),
+			MimeType:  u.MimeType,
 			CreatedAt: u.CreatedAt,
 		}
 	}
@@ -315,6 +323,7 @@ func (s *Server) serveUploadHandler(w http.ResponseWriter, r *http.Request) {
 		mimeType = "application/octet-stream"
 	}
 	w.Header().Set("Content-Type", mimeType)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	http.ServeFile(w, r, path)
 }
 
@@ -330,7 +339,7 @@ func (s *Server) loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	token, err := s.auth.GenerateToken()
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondInternalError(w)
 		return
 	}
 	s.auth.SetCookie(w, token)

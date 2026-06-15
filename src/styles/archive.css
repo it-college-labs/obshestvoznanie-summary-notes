@@ -83,6 +83,27 @@
   pointer-events: none;
 }
 
+.archive-state {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  flex: 1 1 auto;
+  min-height: 220px;
+  place-items: center;
+  margin: clamp(24px, 3vw, 38px) clamp(18px, 2.5vw, 32px);
+  border: 1px dashed rgba(248, 250, 252, 0.18);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(248, 250, 252, 0.78);
+  font-weight: 800;
+}
+
+.archive-state--error {
+  border-color: rgba(251, 113, 133, 0.34);
+  background: rgba(251, 113, 133, 0.08);
+  color: #fecdd3;
+}
+
 .folder-grid {
   position: relative;
   z-index: 4;

@@ -19,7 +19,7 @@ function ArticleSkeleton() {
 }
 
 export function StreamingArticle({ article, phase }: StreamingArticleProps) {
-  const { article: articlePublic, loading } = useArticle(article.id);
+  const { article: articlePublic, loading, error } = useArticle(article.id);
 
   return (
     <div className={`stream-shell stream-shell--${phase}`}>
@@ -40,8 +40,12 @@ export function StreamingArticle({ article, phase }: StreamingArticleProps) {
       </header>
 
       <div className="article-content">
-        {loading || !articlePublic ? (
+        {loading ? (
           <ArticleSkeleton />
+        ) : error || !articlePublic ? (
+          <div className="article-state article-state--error">
+            Статья не загрузилась
+          </div>
         ) : (
           <div
             className="article-render-wrapper"

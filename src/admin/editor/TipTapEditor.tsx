@@ -6,6 +6,7 @@ import { HardBreak } from "@tiptap/extension-hard-break";
 import { KeyIdea, Definition, Example, Callout, ExamTrap, CompareTable } from "./extensions";
 import type { Block } from "../../api/types";
 import { Toolbar } from "./ui/Toolbar";
+import { InlineInsertMenu } from "./InlineInsertMenu";
 
 function normalizeContent(blocks: Block[]) {
   return blocks.map((block) => {
@@ -68,7 +69,10 @@ export function TipTapEditor({ initialContent, onChange }: TipTapEditorProps) {
   return (
     <div className="tiptap-editor">
       <Toolbar editor={editor} />
-      <EditorContent editor={editor} className="tiptap-editor__content" />
+      <div className="tiptap-editor__canvas">
+        <EditorContent editor={editor} className="tiptap-editor__content" />
+        <InlineInsertMenu editor={editor} />
+      </div>
     </div>
   );
 }

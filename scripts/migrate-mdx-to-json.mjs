@@ -6,12 +6,16 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const API_BASE = process.env.API_BASE || "http://localhost:8080";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "areofsociety";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 const metaPath = path.join(__dirname, "articles-meta.json");
 const notesDir = path.join(__dirname, "..", "src", "content", "notes");
 
 async function main() {
+  if (!ADMIN_PASSWORD) {
+    throw new Error("ADMIN_PASSWORD is required. Example: ADMIN_PASSWORD='...' node scripts/migrate-mdx-to-json.mjs");
+  }
+
   const cookie = await login();
   console.log("Logged in.");
 

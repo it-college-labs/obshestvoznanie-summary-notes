@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { api, apiUrl } from "./client";
 import type { ArticleAdmin, ArticleListItem, ArticleStatus, Upload } from "./types";
 
 export async function login(password: string) {
@@ -41,7 +41,7 @@ export async function uploadFile(file: File): Promise<Upload> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`/api/admin/upload`, {
+  const response = await fetch(apiUrl("/api/admin/upload"), {
     method: "POST",
     credentials: "include",
     body: formData,

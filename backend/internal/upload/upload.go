@@ -35,12 +35,10 @@ func (s *Service) Save(file io.Reader, header *models.Upload) (string, error) {
 		header.ID = generateID()
 	}
 
-	ext := filepath.Ext(header.Filename)
-	if ext == "" {
-		exts, _ := mime.ExtensionsByType(header.MimeType)
-		if len(exts) > 0 {
-			ext = exts[0]
-		}
+	ext := ".bin"
+	exts, _ := mime.ExtensionsByType(header.MimeType)
+	if len(exts) > 0 {
+		ext = exts[0]
 	}
 
 	id := generateID()
@@ -82,7 +80,6 @@ func AllowedMimeType(mimeType string) bool {
 		"image/jpeg",
 		"image/png",
 		"image/webp",
-		"image/svg+xml",
 		"image/gif",
 	}
 	for _, a := range allowed {

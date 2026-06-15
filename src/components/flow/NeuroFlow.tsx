@@ -20,6 +20,7 @@ import { useFlowTimers } from "../../flow/useFlowTimers";
 import { useAssistantPanel } from "../../flow/useAssistantPanel";
 import { useArticleResize } from "../../flow/useArticleResize";
 import { useAdminHint } from "../../flow/useAdminHint";
+import { grantAdminEntry } from "../../adminEntry";
 import {
   type FlowPhase,
   getShellRect,
@@ -34,7 +35,7 @@ import "../../styles/archive.css";
 import "../../styles/article.css";
 import "../../styles/mdx.css";
 
-const BOT_IMAGE = "assets/placeholders/bot-placeholder.png";
+const BOT_IMAGE = "/assets/placeholders/bot-placeholder.png";
 const INTRO_DELAY = 1550;
 const SHELL_MORPH_MS = 960;
 const ROUTE_SWAP_MS = SHELL_MORPH_MS + 40;
@@ -44,7 +45,8 @@ const BOT_SETTLE_MS = 860;
 const RESET_TO_INTRO_MS = 980;
 
 function getArticleById(articles: ArticleListItem[], articleId?: string) {
-  return articles.find((article) => article.id === articleId) ?? articles[0];
+  if (!articleId) return articles[0];
+  return articles.find((article) => article.id === articleId);
 }
 
 function SkeletonThought() {
@@ -66,7 +68,7 @@ function SkeletonThought() {
 }
 
 export function NeuroFlow() {
-  const { articles } = useArticles();
+  const { articles, loading: articlesLoading, error: articlesError } = useArticles();
   const viewport = useViewport();
   const isCoarsePointer = useCoarsePointer();
   const navigate = useNavigate();
@@ -475,6 +477,7 @@ export function NeuroFlow() {
                         href="/admin"
                         onClick={(e) => {
                           e.preventDefault();
+                          grantAdminEntry();
                           setAdminHintVisible(false);
                           navigate("/admin");
                         }}
@@ -484,18 +487,28 @@ export function NeuroFlow() {
                     )}
                   </motion.header>
 
-                    <div className="folder-grid">
-                      {articles.map((article, index) => (
-                        <ArticleFolderCard
-                          key={article.id}
-                          article={article}
-                          index={index}
-                          isLeaving={archiveIsLeaving}
-                          isCoarsePointer={isCoarsePointer}
-                          onOpen={openArticle}
-                        />
-                      ))}
-                    </div>
+                    {articlesLoading ? (
+                      <div className="archive-state">Загрузка…</div>
+                    ) : articlesError ? (
+                      <div className="archive-state archive-state--error">
+                        Архив не загрузился
+                      </div>
+                    ) : articles.length === 0 ? (
+                      <div className="archive-state">Пока нет опубликованных статей</div>
+                    ) : (
+                      <div className="folder-grid">
+                        {articles.map((article, index) => (
+                          <ArticleFolderCard
+                            key={article.id}
+                            article={article}
+                            index={index}
+                            isLeaving={archiveIsLeaving}
+                            isCoarsePointer={isCoarsePointer}
+                            onOpen={openArticle}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </section>
 
@@ -626,12 +639,16 @@ export function NeuroFlow() {
                     animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                     transition={{ duration: 0.74, ease: [0.22, 1, 0.36, 1] }}
                   >
-                    {selectedArticle && (
+                    {selectedArticle ? (
                       <StreamingArticle
                         key={selectedArticle.id}
                         article={selectedArticle}
                         phase={streamingPhase}
                       />
+                    ) : (
+                      <div className="article-state article-state--error">
+                        Статья не найдена
+                      </div>
                     )}
                   </motion.div>
                 )}

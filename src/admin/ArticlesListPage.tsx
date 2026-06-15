@@ -1,3 +1,4 @@
+import { LogOut, Pencil, Plus, Trash2, UploadCloud } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { listAdminArticles, deleteArticle, toggleArticlePublish } from "../api/admin";
@@ -10,7 +11,7 @@ export function ArticlesListPage() {
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState<"all" | "published" | "draft">("all");
+  const [filter, setFilter] = useState<"all" | "published" | "draft" | "archived">("all");
 
   const load = async () => {
     setLoading(true);
@@ -47,7 +48,17 @@ export function ArticlesListPage() {
     }
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
+
   const filtered = articles.filter((a) => (filter === "all" ? true : a.status === filter));
+  const statusLabel = (status: ArticleListItem["status"]) => {
+    if (status === "published") return "Опубликована";
+    if (status === "archived") return "Архив";
+    return "Черновик";
+  };
 
   return (
     <div className="admin-list">
@@ -58,14 +69,18 @@ export function ArticlesListPage() {
             <option value="all">Все</option>
             <option value="published">Опубликованные</option>
             <option value="draft">Черновики</option>
+            <option value="archived">Архив</option>
           </select>
           <button type="button" onClick={() => navigate("/admin/articles/new")}>
+            <Plus size={16} />
             Новая статья
           </button>
           <button type="button" onClick={() => navigate("/admin/uploads")}>
+            <UploadCloud size={16} />
             Загрузки
           </button>
-          <button type="button" onClick={logout}>
+          <button type="button" onClick={handleLogout}>
+            <LogOut size={16} />
             Выйти
           </button>
         </div>
@@ -75,6 +90,8 @@ export function ArticlesListPage() {
 
       {loading ? (
         <p>Загрузка…</p>
+      ) : filtered.length === 0 ? (
+        <div className="admin-empty">Статей с таким статусом нет</div>
       ) : (
         <div className="admin-articles-grid">
           {filtered.map((article) => (
@@ -84,11 +101,12 @@ export function ArticlesListPage() {
                 <h3>{article.title}</h3>
                 <p>{article.annotation}</p>
                 <span className={`admin-status admin-status--${article.status}`}>
-                  {article.status === "published" ? "Опубликована" : "Черновик"}
+                  {statusLabel(article.status)}
                 </span>
               </div>
               <div className="admin-article-card__actions">
                 <button type="button" onClick={() => navigate(`/admin/articles/${article.id}`)}>
+                  <Pencil size={15} />
                   Редактировать
                 </button>
                 <button type="button" onClick={() => handlePublishToggle(article.id)}>
@@ -99,6 +117,7 @@ export function ArticlesListPage() {
                   className="admin-button-danger"
                   onClick={() => handleDelete(article.id, article.title)}
                 >
+                  <Trash2 size={15} />
                   Удалить
                 </button>
               </div>

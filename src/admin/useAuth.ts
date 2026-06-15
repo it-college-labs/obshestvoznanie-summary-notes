@@ -1,35 +1,44 @@
-import { useEffect, useState } from "react";
-import { api } from "../api/client";
+import { createContext, createElement, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { login as loginApi, logout as logoutApi } from "../api/admin";
 
-export function useAuth() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState(true);
+type AuthContextValue = {
+  isAuthenticated: boolean | null;
+  loading: boolean;
+  login: (password: string) => Promise<void>;
+  logout: () => Promise<void>;
+};
 
-  const checkAuth = async () => {
-    try {
-      await api.get<{ authenticated: boolean }>("/api/admin/me");
-      setIsAuthenticated(true);
-    } catch {
-      setIsAuthenticated(false);
-    } finally {
-      setLoading(false);
-    }
-  };
+const AuthContext = createContext<AuthContextValue | null>(null);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(false);
+  const loading = false;
 
-  const login = async (password: string) => {
+  const login = useCallback(async (password: string) => {
     await loginApi(password);
     setIsAuthenticated(true);
-  };
+  }, []);
 
-  const logout = async () => {
-    await logoutApi();
-    setIsAuthenticated(false);
-  };
+  const logout = useCallback(async () => {
+    try {
+      await logoutApi();
+    } finally {
+      setIsAuthenticated(false);
+    }
+  }, []);
 
-  return { isAuthenticated, loading, login, logout, checkAuth };
+  const value = useMemo(
+    () => ({ isAuthenticated, loading, login, logout }),
+    [isAuthenticated, loading, login, logout],
+  );
+
+  return createElement(AuthContext.Provider, { value }, children);
+}
+
+export function useAuth() {
+  const value = useContext(AuthContext);
+  if (!value) {
+    throw new Error("useAuth must be used inside AuthProvider");
+  }
+  return value;
 }

@@ -4,10 +4,11 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"sort"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jmoiron/sqlx"
 	"github.com/nksv-ilya/neuroarchive/internal/models"
 )
 
@@ -31,17 +32,55 @@ func (s *Store) Migrate() error {
 	if err != nil {
 		return fmt.Errorf("read migrations dir: %w", err)
 	}
+
+	names := make([]string, 0, len(files))
 	for _, file := range files {
 		if file.IsDir() {
 			continue
 		}
-		content, err := migrationsFS.ReadFile("migrations/" + file.Name())
+		names = append(names, file.Name())
+	}
+	sort.Strings(names)
+
+	tx, err := s.db.Beginx()
+	if err != nil {
+		return fmt.Errorf("begin migration transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`SELECT pg_advisory_xact_lock(hashtext('neuroarchive_migrations'))`); err != nil {
+		return fmt.Errorf("acquire migration lock: %w", err)
+	}
+	if _, err := tx.Exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
+		version TEXT PRIMARY KEY,
+		applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	)`); err != nil {
+		return fmt.Errorf("create schema_migrations: %w", err)
+	}
+
+	for _, name := range names {
+		var exists bool
+		if err := tx.Get(&exists, `SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = $1)`, name); err != nil {
+			return fmt.Errorf("check migration %s: %w", name, err)
+		}
+		if exists {
+			continue
+		}
+
+		content, err := migrationsFS.ReadFile("migrations/" + name)
 		if err != nil {
-			return fmt.Errorf("read migration %s: %w", file.Name(), err)
+			return fmt.Errorf("read migration %s: %w", name, err)
 		}
-		if _, err := s.db.Exec(string(content)); err != nil {
-			return fmt.Errorf("execute migration %s: %w", file.Name(), err)
+		if _, err := tx.Exec(string(content)); err != nil {
+			return fmt.Errorf("execute migration %s: %w", name, err)
 		}
+		if _, err := tx.Exec(`INSERT INTO schema_migrations (version) VALUES ($1)`, name); err != nil {
+			return fmt.Errorf("record migration %s: %w", name, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit migrations: %w", err)
 	}
 	return nil
 }

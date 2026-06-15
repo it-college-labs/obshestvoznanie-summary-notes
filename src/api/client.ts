@@ -1,7 +1,11 @@
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
+export function apiUrl(path: string) {
+  return `${API_BASE}${path}`;
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const url = `${API_BASE}${path}`;
+  const url = apiUrl(path);
   const headers: Record<string, string> = {};
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";

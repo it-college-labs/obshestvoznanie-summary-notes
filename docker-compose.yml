@@ -2,9 +2,9 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: neuro
-      POSTGRES_PASSWORD: neuro
-      POSTGRES_DB: neuroarchive
+      POSTGRES_USER: ${POSTGRES_USER:-neuro}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-neuro}
+      POSTGRES_DB: ${POSTGRES_DB:-neuroarchive}
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     healthcheck:
@@ -23,6 +23,7 @@ services:
       dockerfile: Dockerfile
     environment:
       - APP_DOMAIN=${APP_DOMAIN}
+      - APP_ENV=${APP_ENV:-development}
       - BASE_URL=${BASE_URL}
       - DATABASE_URL=${DATABASE_URL}
       - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}

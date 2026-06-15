@@ -3,6 +3,7 @@ package render
 import (
 	"fmt"
 	"html"
+	"net/url"
 	"strings"
 	"unicode"
 
@@ -116,7 +117,7 @@ func renderBlock(sb *strings.Builder, block models.Block, headings *[]models.Hea
 		src := ""
 		alt := ""
 		if s, ok := block.Attrs["src"].(string); ok {
-			src = html.EscapeString(s)
+			src = html.EscapeString(safeImageURL(s))
 		}
 		if a, ok := block.Attrs["alt"].(string); ok {
 			alt = html.EscapeString(a)
@@ -188,7 +189,7 @@ func renderInline(nodes []models.Block) string {
 				case "link":
 					href := ""
 					if h, ok := mark.Attrs["href"].(string); ok {
-						href = html.EscapeString(h)
+						href = html.EscapeString(safeLinkURL(h))
 					}
 					text = fmt.Sprintf(`<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>`, href, text)
 				}
@@ -199,6 +200,51 @@ func renderInline(nodes []models.Block) string {
 		}
 	}
 	return sb.String()
+}
+
+func safeLinkURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "#"
+	}
+	if strings.HasPrefix(raw, "/") || strings.HasPrefix(raw, "#") {
+		return raw
+	}
+
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return "#"
+	}
+	switch strings.ToLower(parsed.Scheme) {
+	case "http", "https", "mailto", "tel":
+		return raw
+	default:
+		return "#"
+	}
+}
+
+func safeImageURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	if strings.HasPrefix(raw, "assets/") {
+		return "/" + raw
+	}
+	if strings.HasPrefix(raw, "/uploads/") || strings.HasPrefix(raw, "/assets/") {
+		return raw
+	}
+
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return ""
+	}
+	switch strings.ToLower(parsed.Scheme) {
+	case "http", "https":
+		return raw
+	default:
+		return ""
+	}
 }
 
 func renderTable(sb *strings.Builder, props map[string]interface{}) {

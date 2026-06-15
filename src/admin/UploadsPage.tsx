@@ -1,3 +1,4 @@
+import { ArrowLeft, Copy, UploadCloud } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { uploadFile, listUploads } from "../api/admin";
@@ -51,6 +52,7 @@ export function UploadsPage() {
       <header className="admin-list-header">
         <h1>Загрузки</h1>
         <button type="button" onClick={() => navigate("/admin/articles")}>
+          <ArrowLeft size={16} />
           Назад к статьям
         </button>
       </header>
@@ -65,11 +67,14 @@ export function UploadsPage() {
         onChange={handleFileChange}
       />
       <button type="button" disabled={uploading} onClick={() => inputRef.current?.click()}>
+        <UploadCloud size={16} />
         {uploading ? "Загрузка…" : "Загрузить картинку"}
       </button>
 
       {loading ? (
         <p className="admin-loading">Загрузка…</p>
+      ) : uploads.length === 0 ? (
+        <div className="admin-empty">Загрузок пока нет</div>
       ) : (
         <div className="admin-uploads-grid">
           {uploads.map((up) => (
@@ -78,6 +83,7 @@ export function UploadsPage() {
               <div className="admin-upload-card__info">
                 <code>{up.url}</code>
                 <button type="button" onClick={() => copyUrl(up.url)}>
+                  <Copy size={14} />
                   Копировать URL
                 </button>
               </div>

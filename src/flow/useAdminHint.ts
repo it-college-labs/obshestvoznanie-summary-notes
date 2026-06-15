@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 export function useAdminHint() {
   const [adminHintVisible, setAdminHintVisible] = useState(false);
@@ -25,17 +25,6 @@ export function useAdminHint() {
   const onPointerLeave = useCallback(() => {
     clearLongPressTimer();
   }, [clearLongPressTimer]);
-
-  useEffect(() => {
-    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "a") {
-        event.preventDefault();
-        setAdminHintVisible(true);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   return {
     adminHintVisible,

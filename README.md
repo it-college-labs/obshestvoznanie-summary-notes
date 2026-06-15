@@ -23,7 +23,9 @@ npm run build     # production-сборка фронта в dist/
 ## Запуск всего стека
 
 ```bash
-cp .env.example .env   # заполните JWT_SECRET и ADMIN_PASSWORD_HASH
+cp .env.example .env
+cd backend && go run ./cmd/hash "your-admin-password"
+# вставьте hash в ADMIN_PASSWORD_HASH, затем заполните JWT_SECRET
 ./scripts/deploy.sh dev
 # или для production:
 # ./scripts/deploy.sh prod
@@ -40,8 +42,8 @@ cp .env.example .env   # заполните JWT_SECRET и ADMIN_PASSWORD_HASH
 импортируются через:
 
 ```bash
-node scripts/migrate-mdx-to-json.mjs
+ADMIN_PASSWORD="your-admin-password" node scripts/migrate-mdx-to-json.mjs
 ```
 
-Загруженные изображения сохраняются в `./data/uploads` и раздаются через
-`/uploads/{filename}`.
+Загруженные изображения сохраняются в `./data/uploads`, раздаются через
+`/uploads/{filename}` и выбираются в админке прямо в карточках изображений.
