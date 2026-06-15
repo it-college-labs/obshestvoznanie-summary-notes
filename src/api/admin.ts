@@ -9,6 +9,10 @@ export async function logout() {
   return api.post<{ status: string }>("/api/admin/logout", {});
 }
 
+export function getMe() {
+  return api.get<{ authenticated: boolean }>("/api/admin/me");
+}
+
 export function listAdminArticles() {
   return api.get<ArticleListItem[]>("/api/admin/articles");
 }

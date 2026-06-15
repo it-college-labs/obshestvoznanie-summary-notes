@@ -1,13 +1,16 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
+	"net"
 	"net/http"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -20,21 +23,79 @@ import (
 )
 
 type Server struct {
-	store   *store.Store
-	auth    *auth.Auth
-	upload  *upload.Service
-	router  *chi.Mux
-	baseURL string
+	store       *store.Store
+	auth        *auth.Auth
+	upload      *upload.Service
+	router      *chi.Mux
+	baseURL     string
+	rateLimiter *rateLimiter
 }
 
 const maxUploadBytes = 10 << 20
+const loginMaxAttempts = 5
+const loginWindow = time.Minute
+
+type loginAttempt struct {
+	count  int
+	resetAt time.Time
+}
+
+type rateLimiter struct {
+	mu       sync.Mutex
+	attempts map[string]*loginAttempt
+}
+
+func newRateLimiter() *rateLimiter {
+	return &rateLimiter{attempts: make(map[string]*loginAttempt)}
+}
+
+func (rl *rateLimiter) isAllowed(ip string) bool {
+	now := time.Now()
+	return rl.record(ip, now)
+}
+
+func (rl *rateLimiter) record(ip string, now time.Time) bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	attempt, exists := rl.attempts[ip]
+	if !exists || now.After(attempt.resetAt) {
+		attempt = &loginAttempt{count: 0, resetAt: now.Add(loginWindow)}
+		rl.attempts[ip] = attempt
+	}
+	if attempt.count >= loginMaxAttempts {
+		return false
+	}
+	attempt.count++
+	return true
+}
+
+func (rl *rateLimiter) cleanup(now time.Time) {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	for ip, attempt := range rl.attempts {
+		if now.After(attempt.resetAt) {
+			delete(rl.attempts, ip)
+		}
+	}
+}
+
+func clientIP(r *http.Request) string {
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return ip
+}
 
 func New(st *store.Store, au *auth.Auth, up *upload.Service, baseURL string) *Server {
 	s := &Server{
-		store:   st,
-		auth:    au,
-		upload:  up,
-		baseURL: baseURL,
+		store:       st,
+		auth:        au,
+		upload:      up,
+		baseURL:     baseURL,
+		rateLimiter: newRateLimiter(),
 	}
 	s.setupRoutes()
 	return s
@@ -62,12 +123,12 @@ func (s *Server) setupRoutes() {
 	r.Get("/api/articles", s.listArticlesHandler)
 	r.Get("/api/articles/{id}", s.getArticleHandler)
 
-	r.Post("/api/admin/login", s.loginHandler)
-	r.Post("/api/admin/logout", s.logoutHandler)
+	r.Post("/api/admin/login", s.rateLimitedLoginHandler)
 
 	r.Route("/api/admin", func(r chi.Router) {
 		r.Use(s.auth.Middleware)
 		r.Get("/me", s.adminMeHandler)
+		r.Post("/logout", s.logoutHandler)
 		r.Get("/articles", s.adminListArticlesHandler)
 		r.Get("/articles/{id}", s.adminGetArticleHandler)
 		r.Post("/articles", s.adminCreateArticleHandler)
@@ -192,6 +253,15 @@ func (s *Server) adminCreateArticleHandler(w http.ResponseWriter, r *http.Reques
 
 func (s *Server) adminUpdateArticleHandler(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	if _, err := s.store.GetArticle(r.Context(), id); err != nil {
+		if err == sql.ErrNoRows {
+			respondError(w, http.StatusNotFound, "article not found")
+			return
+		}
+		respondInternalError(w)
+		return
+	}
+
 	var article models.Article
 	if err := json.NewDecoder(r.Body).Decode(&article); err != nil {
 		respondError(w, http.StatusBadRequest, "invalid JSON")
@@ -212,6 +282,15 @@ func (s *Server) adminUpdateArticleHandler(w http.ResponseWriter, r *http.Reques
 
 func (s *Server) adminDeleteArticleHandler(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	if _, err := s.store.GetArticle(r.Context(), id); err != nil {
+		if err == sql.ErrNoRows {
+			respondError(w, http.StatusNotFound, "article not found")
+			return
+		}
+		respondInternalError(w)
+		return
+	}
+
 	if err := s.store.DeleteArticle(r.Context(), id); err != nil {
 		respondInternalError(w)
 		return
@@ -325,6 +404,15 @@ func (s *Server) serveUploadHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mimeType)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	http.ServeFile(w, r, path)
+}
+
+func (s *Server) rateLimitedLoginHandler(w http.ResponseWriter, r *http.Request) {
+	ip := clientIP(r)
+	if !s.rateLimiter.isAllowed(ip) {
+		respondError(w, http.StatusTooManyRequests, "too many login attempts")
+		return
+	}
+	s.loginHandler(w, r)
 }
 
 func (s *Server) loginHandler(w http.ResponseWriter, r *http.Request) {

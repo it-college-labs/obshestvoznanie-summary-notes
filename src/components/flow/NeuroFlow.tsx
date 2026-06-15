@@ -1,4 +1,3 @@
-import { ArrowLeft } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   type KeyboardEvent,
@@ -10,9 +9,9 @@ import {
   useState,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArticleFolderCard } from "../archive/ArticleFolderCard";
-import { StreamingArticle, type GenerationPhase } from "../article/StreamingArticle";
-import { LivingOrbButton } from "../orb/LivingOrb";
+import { ArchiveView } from "./parts/ArchiveView";
+import { ArticleView } from "./parts/ArticleView";
+import { BotOrb } from "./parts/BotOrb";
 import { useArticles } from "../../hooks/useArticles";
 import { useViewport } from "../../flow/useViewport";
 import { useCoarsePointer } from "../../flow/useCoarsePointer";
@@ -35,7 +34,6 @@ import "../../styles/archive.css";
 import "../../styles/article.css";
 import "../../styles/mdx.css";
 
-const BOT_IMAGE = "/assets/placeholders/bot-placeholder.png";
 const INTRO_DELAY = 1550;
 const SHELL_MORPH_MS = 960;
 const ROUTE_SWAP_MS = SHELL_MORPH_MS + 40;
@@ -47,24 +45,6 @@ const RESET_TO_INTRO_MS = 980;
 function getArticleById(articles: ArticleListItem[], articleId?: string) {
   if (!articleId) return articles[0];
   return articles.find((article) => article.id === articleId);
-}
-
-function SkeletonThought() {
-  return (
-    <motion.div
-      key="thinking"
-      className="thinking-surface flow-thinking"
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
-      transition={{ duration: 0.42 }}
-    >
-      <span className="thinking-mini-orb" aria-hidden="true" />
-      <span className="thinking-line thinking-line--wide" />
-      <span className="thinking-line" />
-      <span className="thinking-line thinking-line--short" />
-    </motion.div>
-  );
 }
 
 export function NeuroFlow() {
@@ -130,14 +110,13 @@ export function NeuroFlow() {
   );
 
   const shellRect = getShellRect(phase, viewport, articleWidth);
-  const botRect = getBotRect(phase, viewport);
-  const renderedBotRect =
-    phase === "intro" && !introBotArrived
-      ? {
-          ...botRect,
-          x: -botRect.width - 96,
-        }
-      : botRect;
+  const renderedBotRect = useMemo(() => {
+    const rect = getBotRect(phase, viewport);
+    if (phase === "intro" && !introBotArrived) {
+      return { ...rect, x: -rect.width - 96 };
+    }
+    return rect;
+  }, [phase, viewport, introBotArrived]);
   const shellShouldRender =
     phase !== "intro" && phase !== "movingToArchive";
   const assistantCopyVisible = assistantPanelActive || isResetTip;
@@ -373,8 +352,11 @@ export function NeuroFlow() {
     setPhase("resettingToIntro");
   }, [clearAssistantCloseTimer, clearTimers, setAssistantPanelActive]);
 
-  const streamingPhase: Exclude<GenerationPhase, "thinking"> =
-    phase === "streaming" ? "streaming" : "ready";
+  const handleAdminClick = useCallback(() => {
+    grantAdminEntry();
+    setAdminHintVisible(false);
+    navigate("/admin");
+  }, [navigate, setAdminHintVisible]);
 
   return (
     <main className={`flow-stage flow-stage--${phase}`}>
@@ -421,330 +403,57 @@ export function NeuroFlow() {
         </AnimatePresence>
         <AnimatePresence mode="wait">
           {showArchiveContent && (
-            <motion.div
-              key="archive"
-              className={`flow-shell-content flow-archive-content ${
-                archiveIsRevealing ? "flow-archive-content--revealing" : ""
-              } ${archiveIsLeaving ? "flow-archive-content--leaving" : ""}`}
-              initial={{ opacity: 0, y: 18, scale: 0.965 }}
-              animate={
-                archiveIsLeaving
-                  ? { opacity: 0, y: 12, scale: 0.985 }
-                  : { opacity: 1, y: 0, scale: 1 }
-              }
-              exit={{ opacity: 0, scale: 0.985 }}
-              transition={{
-                delay: archiveIsLeaving ? 0 : 0.08,
-                duration: shouldReduceMotion ? 0.16 : archiveIsLeaving ? 0.2 : 0.68,
-                ease: [0.16, 1, 0.3, 1],
-              }}
-            >
-              <div className="flow-archive-layout">
-                <section className="flow-archive-files" aria-label="Статьи">
-                  <div className="folder-cluster">
-                  <motion.header
-                    className="archive-topbar"
-                    aria-label="Нейроархив"
-                    initial={{
-                      opacity: 0,
-                      y: -18,
-                      scale: 0.965,
-                    }}
-                    animate={
-                      archiveIsLeaving
-                        ? { opacity: 0, y: -12, scale: 0.985 }
-                        : { opacity: 1, y: 0, scale: 1 }
-                    }
-                    transition={{
-                      delay: archiveIsLeaving ? 0 : 0.14,
-                      duration: shouldReduceMotion ? 0.16 : archiveIsLeaving ? 0.18 : 0.58,
-                      ease: [0.16, 1, 0.3, 1],
-                    }}
-                  >
-                    <span className="window-dots" aria-hidden="true">
-                      <span />
-                      <span />
-                      <span
-                        onPointerDown={onPointerDown}
-                        onPointerUp={onPointerUp}
-                        onPointerLeave={onPointerLeave}
-                      />
-                    </span>
-                    <span className="archive-path">Конспекты по обществознанию</span>
-                    {adminHintVisible && (
-                      <a
-                        className="admin-hint-link"
-                        href="/admin"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          grantAdminEntry();
-                          setAdminHintVisible(false);
-                          navigate("/admin");
-                        }}
-                      >
-                        Админка
-                      </a>
-                    )}
-                  </motion.header>
-
-                    {articlesLoading ? (
-                      <div className="archive-state">Загрузка…</div>
-                    ) : articlesError ? (
-                      <div className="archive-state archive-state--error">
-                        Архив не загрузился
-                      </div>
-                    ) : articles.length === 0 ? (
-                      <div className="archive-state">Пока нет опубликованных статей</div>
-                    ) : (
-                      <div className="folder-grid">
-                        {articles.map((article, index) => (
-                          <ArticleFolderCard
-                            key={article.id}
-                            article={article}
-                            index={index}
-                            isLeaving={archiveIsLeaving}
-                            isCoarsePointer={isCoarsePointer}
-                            onOpen={openArticle}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </section>
-
-                <motion.aside
-                  className={`flow-assistant-rail ${
-                    archiveIsLeaving ? "flow-assistant-rail--leaving" : ""
-                  } ${assistantCopyVisible ? "flow-assistant-rail--copy-active" : ""}`}
-                  aria-label="Ассистент"
-                  initial={{
-                    opacity: 0,
-                    x: 28,
-                    scale: 0.965,
-                  }}
-                  animate={
-                    archiveIsLeaving
-                      ? { opacity: 0, x: 22, scale: 0.985 }
-                      : { opacity: 1, x: 0, scale: 1 }
-                  }
-                  transition={{
-                    delay: archiveIsLeaving ? 0 : 0.16,
-                    duration: shouldReduceMotion ? 0.16 : archiveIsLeaving ? 0.2 : 0.46,
-                    ease: [0.16, 1, 0.3, 1],
-                  }}
-                  role={phase === "archive" ? "button" : undefined}
-                  tabIndex={phase === "archive" ? 0 : -1}
-                  onClick={handleRailClick}
-                  onKeyDown={handleRailKeyDown}
-                  onPointerEnter={showAssistantPanel}
-                  onPointerLeave={hideAssistantPanel}
-                >
-                  <span className="flow-assistant-rail__base" aria-hidden="true" />
-                  <span className="flow-assistant-rail__grid" aria-hidden="true" />
-                  <span className="flow-assistant-rail__halo" aria-hidden="true" />
-                  <span className="flow-assistant-rail__divider" aria-hidden="true" />
-                  <AnimatePresence>
-                    {assistantCopyVisible && (
-                      <motion.div
-                        className={`flow-assistant-copy ${
-                          isResetTip ? "flow-assistant-copy--reset" : ""
-                        }`}
-                        initial={{ opacity: 0, y: 14, scale: 0.965 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.985 }}
-                        transition={{
-                          duration: 0.42,
-                          ease: [0.16, 1, 0.3, 1],
-                        }}
-                      >
-                        <AnimatePresence mode="wait">
-                          <motion.span
-                            key={currentBotMessage}
-                            className="flow-assistant-copy__message"
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -8 }}
-                            transition={{
-                              duration: 0.28,
-                              ease: [0.22, 1, 0.36, 1],
-                            }}
-                          >
-                            {currentBotMessage}
-                          </motion.span>
-                        </AnimatePresence>
-                        {isResetTip && (
-                          <motion.button
-                            className="flow-assistant-copy__button"
-                            type="button"
-                            onClick={restartFlow}
-                            initial={{ opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.24 }}
-                          >
-                            На старт
-                          </motion.button>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.aside>
-              </div>
-            </motion.div>
+            <ArchiveView
+              articles={articles}
+              articlesLoading={articlesLoading}
+              articlesError={articlesError}
+              isCoarsePointer={isCoarsePointer}
+              phase={phase}
+              archiveIsRevealing={archiveIsRevealing}
+              archiveIsLeaving={archiveIsLeaving}
+              assistantCopyVisible={assistantCopyVisible}
+              currentBotMessage={currentBotMessage}
+              isResetTip={isResetTip}
+              adminHintVisible={adminHintVisible}
+              shouldReduceMotion={shouldReduceMotion}
+              onOpenArticle={openArticle}
+              onRailClick={handleRailClick}
+              onRailKeyDown={handleRailKeyDown}
+              onAssistantPanelEnter={showAssistantPanel}
+              onAssistantPanelLeave={hideAssistantPanel}
+              onAdminPointerDown={onPointerDown}
+              onAdminPointerUp={onPointerUp}
+              onAdminPointerLeave={onPointerLeave}
+              onAdminClick={handleAdminClick}
+              onRestartFlow={restartFlow}
+            />
           )}
 
           {showArticleContent && (
-            <motion.div
-              key="article"
-              className="flow-shell-content flow-article-content"
-              initial={{ opacity: 0, y: 20, filter: "blur(12px)" }}
-              animate={{
-                opacity: articleIsLeaving ? 0 : 1,
-                y: articleIsLeaving ? -14 : 0,
-                scale: articleIsLeaving ? 0.965 : 1,
-                filter: articleIsLeaving ? "blur(6px)" : "blur(0px)",
-              }}
-              exit={{ opacity: 0, y: 10, scale: 0.985 }}
-              transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div
-                className={`generation-blur generation-blur--top ${
-                  phase === "streaming" ? "generation-blur--active" : ""
-                }`}
-                aria-hidden="true"
-              />
-              <div
-                className={`generation-blur generation-blur--bottom ${
-                  phase === "streaming" ? "generation-blur--active" : ""
-                }`}
-                aria-hidden="true"
-              />
-              <button
-                className="back-button"
-                type="button"
-                onClick={backToArchive}
-                disabled={articleIsLeaving}
-              >
-                <ArrowLeft size={18} />
-                Назад
-              </button>
-
-              <AnimatePresence mode="wait">
-                {phase === "thinking" ? (
-                  <SkeletonThought />
-                ) : (
-                  <motion.div
-                    key="article-content"
-                    className="article-stream-stage"
-                    initial={{ opacity: 0, y: 22, filter: "blur(12px)" }}
-                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    transition={{ duration: 0.74, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    {selectedArticle ? (
-                      <StreamingArticle
-                        key={selectedArticle.id}
-                        article={selectedArticle}
-                        phase={streamingPhase}
-                      />
-                    ) : (
-                      <div className="article-state article-state--error">
-                        Статья не найдена
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+            <ArticleView
+              article={selectedArticle}
+              phase={phase}
+              articleIsLeaving={articleIsLeaving}
+              resizeHandlersReady={resizeHandlersReady}
+              onBackToArchive={backToArchive}
+              onResizePointerDown={startResize}
+              onResizeKeyDown={handleResizeKeyDown}
+            />
           )}
         </AnimatePresence>
-        {resizeHandlersReady && (
-          <>
-            <button
-              type="button"
-              className="article-resize-handle article-resize-handle--left"
-              aria-label="Изменить ширину статьи слева"
-              onPointerDown={(event) => startResize(event, "left")}
-              onKeyDown={(event) => handleResizeKeyDown(event, "left")}
-            />
-            <button
-              type="button"
-              className="article-resize-handle article-resize-handle--right"
-              aria-label="Изменить ширину статьи справа"
-              onPointerDown={(event) => startResize(event, "right")}
-              onKeyDown={(event) => handleResizeKeyDown(event, "right")}
-            />
-          </>
-        )}
       </motion.div>
 
-      <LivingOrbButton
-        className={`flow-bot ${phase === "archive" ? "flow-bot--archive" : ""} ${
-          isResetTip ? "flow-bot--reset-tip" : ""
-        }`}
-        image={selectedArticle?.botThinkingImage ?? BOT_IMAGE}
-        active={botIsActive}
-        ariaLabel="Управлять нейроархивом"
+      <BotOrb
+        phase={phase}
+        introBotArrived={introBotArrived}
+        renderedBotRect={renderedBotRect}
+        selectedArticle={selectedArticle}
+        botIsActive={botIsActive}
+        isResetTip={isResetTip}
+        shouldReduceMotion={shouldReduceMotion}
         onClick={handleBotClick}
         onPointerEnter={showAssistantPanel}
         onPointerLeave={hideAssistantPanel}
-        disabled={
-          (phase === "intro" && !introBotArrived) ||
-          phase === "movingToArchive" ||
-          phase === "openingArchive" ||
-          phase === "settlingArchive" ||
-          phase === "preparingArticle" ||
-          phase === "closingToArticle" ||
-          phase === "preparingArchive" ||
-          phase === "closingToArchive" ||
-          phase === "resettingToIntro"
-        }
-        initial={false}
-        animate={{
-          x: renderedBotRect.x,
-          y: renderedBotRect.y,
-          width: renderedBotRect.width,
-          opacity:
-            phase === "intro" && !introBotArrived
-              ? 0
-              : 1,
-          scale:
-            phase === "closingToArticle" ||
-            phase === "closingToArchive" ||
-            phase === "resettingToIntro" ||
-            phase === "openingArticle"
-              ? [1, 0.9, 1]
-              : 1,
-        }}
-        transition={{
-          x: shouldReduceMotion
-            ? { duration: 0.01 }
-            : {
-                type: "spring",
-                stiffness: phase === "settlingArchive" ? 74 : 92,
-                damping: phase === "settlingArchive" ? 18 : 20,
-                mass: phase === "settlingArchive" ? 1.24 : 1.08,
-              },
-          y: shouldReduceMotion
-            ? { duration: 0.01 }
-            : {
-                type: "spring",
-                stiffness: phase === "settlingArchive" ? 74 : 92,
-                damping: phase === "settlingArchive" ? 18 : 20,
-                mass: phase === "settlingArchive" ? 1.24 : 1.08,
-              },
-          width: {
-            duration: shouldReduceMotion ? 0.01 : 0.72,
-            ease: [0.16, 1, 0.3, 1],
-          },
-          opacity: {
-            duration: shouldReduceMotion ? 0.01 : 0.42,
-            ease: [0.16, 1, 0.3, 1],
-          },
-          scale: {
-            duration: shouldReduceMotion ? 0.01 : 0.54,
-            ease: [0.16, 1, 0.3, 1],
-          },
-        }}
-        whileTap={phase === "intro" ? { scale: 0.96 } : undefined}
       />
     </main>
   );

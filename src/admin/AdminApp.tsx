@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { consumeAdminEntry } from "../adminEntry";
-import "./admin.css";
+import "./styles/base.css";
+import "./styles/list.css";
+import "./styles/editor.css";
+import "./styles/uploads.css";
+import "./styles/responsive.css";
 import { AuthProvider, useAuth } from "./useAuth";
 import { LoginPage } from "./LoginPage";
 import { ArticlesListPage } from "./ArticlesListPage";
@@ -12,16 +16,16 @@ function AdminShell() {
   const { isAuthenticated, loading } = useAuth();
   const [entryAllowed] = useState(() => consumeAdminEntry());
 
-  if (!entryAllowed) {
-    return <Navigate to="/" replace />;
-  }
-
   if (loading) {
     return (
       <div className="admin-app">
         <div className="admin-loading">Проверка доступа…</div>
       </div>
     );
+  }
+
+  if (!isAuthenticated && !entryAllowed) {
+    return <Navigate to="/" replace />;
   }
 
   if (!isAuthenticated) {

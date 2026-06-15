@@ -1,9 +1,9 @@
-import { ArrowLeft, Send, UploadCloud, X } from "lucide-react";
-import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import { ArrowLeft, Send } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getAdminArticle, createArticle, updateArticle, listUploads, uploadFile } from "../api/admin";
-import { TipTapEditor } from "./editor/TipTapEditor";
-import { publicAsset } from "../content/assets";
+import { EditorCanvas, EditorInspector } from "./article-edit/EditorLayout";
+import { generateId, validateArticle } from "./article-edit/utils";
 import type { ArticleAdmin, Block, Upload } from "../api/types";
 
 const emptyContent: Block = {
@@ -35,297 +35,6 @@ const emptyArticle: ArticleAdmin = {
   content: emptyContent,
 };
 
-const statusLabel: Record<ArticleAdmin["status"], string> = {
-  published: "Опубликована",
-  draft: "Черновик",
-  archived: "Архив",
-};
-
-type ImageFieldProps = {
-  label: string;
-  value: string;
-  uploads: Upload[];
-  uploading: boolean;
-  onChange: (value: string) => void;
-  onUpload: (file: File) => void;
-};
-
-function ImageField({ label, value, uploads, uploading, onChange, onUpload }: ImageFieldProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const selectedUpload = uploads.find((upload) => upload.url === value);
-
-  const handleFile = (file?: File) => {
-    if (!file) return;
-    onUpload(file);
-  };
-
-  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    handleFile(event.dataTransfer.files?.[0]);
-  };
-
-  const displayUrl = publicAsset(value);
-
-  return (
-    <div
-      className={`admin-image-field ${value ? "admin-image-field--filled" : ""}`}
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={handleDrop}
-    >
-      <div className="admin-image-field__preview">
-        {displayUrl ? (
-          <img src={displayUrl} alt="" loading="lazy" />
-        ) : (
-          <span className="admin-image-field__empty">Пусто</span>
-        )}
-      </div>
-      <div className="admin-image-field__body">
-        <span className="admin-image-field__label">{label}</span>
-        <span className="admin-image-field__filename">
-          {selectedUpload?.filename || (value ? "Текущее изображение" : "Не выбрано")}
-        </span>
-        <select value={value} onChange={(event) => onChange(event.target.value)}>
-          <option value="">Выбрать из загрузок</option>
-          {value && !selectedUpload && <option value={value}>Текущее изображение</option>}
-          {uploads.map((upload) => (
-            <option key={upload.id} value={upload.url}>
-              {upload.filename}
-            </option>
-          ))}
-        </select>
-        <div className="admin-image-field__actions">
-          <button
-            type="button"
-            className="admin-button-outline"
-            onClick={() => inputRef.current?.click()}
-            disabled={uploading}
-          >
-            <UploadCloud size={15} />
-            {uploading ? "Загрузка…" : "Загрузить"}
-          </button>
-          {value && (
-            <button type="button" className="admin-button-ghost" onClick={() => onChange("")}>
-              <X size={15} />
-              Сбросить
-            </button>
-          )}
-        </div>
-      </div>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp,image/gif"
-        hidden
-        onChange={(event: ChangeEvent<HTMLInputElement>) => {
-          handleFile(event.target.files?.[0]);
-          event.target.value = "";
-        }}
-      />
-    </div>
-  );
-}
-
-type UpdateMeta = (field: keyof ArticleAdmin, value: unknown) => void;
-type UpdateArray = (field: "tags" | "accent" | "folderPreviewImages", index: number, value: string) => void;
-
-function PublishPanel({ article, hasChanges }: { article: ArticleAdmin; hasChanges: boolean }) {
-  return (
-    <section className="admin-bento-panel admin-publish-panel">
-      <div className="admin-bento-panel__head">
-        <h2>Публикация</h2>
-        <span className={`admin-status admin-status--${article.status}`}>
-          {statusLabel[article.status]}
-        </span>
-      </div>
-      <div className="admin-publish-panel__rows">
-        <span>ID</span>
-        <strong>{article.id || "Не задан"}</strong>
-        <span>Состояние</span>
-        <strong>{hasChanges ? "Есть изменения" : "Сохранено"}</strong>
-      </div>
-    </section>
-  );
-}
-
-function ArticleDetailsPanel({
-  article,
-  isNew,
-  updateMeta,
-}: {
-  article: ArticleAdmin;
-  isNew: boolean;
-  updateMeta: UpdateMeta;
-}) {
-  return (
-    <section className="admin-bento-panel">
-      <div className="admin-bento-panel__head">
-        <h2>Паспорт</h2>
-      </div>
-      <div className="admin-field-grid">
-        <label className="admin-field admin-field--full">
-          <span>Заголовок</span>
-          <input value={article.title} onChange={(e) => updateMeta("title", e.target.value)} />
-        </label>
-        <label className="admin-field admin-field--full">
-          <span>Аннотация</span>
-          <textarea value={article.annotation} onChange={(e) => updateMeta("annotation", e.target.value)} />
-        </label>
-        <label className="admin-field">
-          <span>Неделя</span>
-          <input value={article.week} onChange={(e) => updateMeta("week", e.target.value)} />
-        </label>
-        <label className="admin-field">
-          <span>Чтение</span>
-          <input value={article.readingTime} onChange={(e) => updateMeta("readingTime", e.target.value)} />
-        </label>
-        <label className="admin-field admin-field--full">
-          <span>Теги</span>
-          <input
-            value={article.tags.join(", ")}
-            onChange={(e) => updateMeta("tags", e.target.value.split(",").map((t) => t.trim()).filter(Boolean))}
-          />
-        </label>
-        <label className="admin-field admin-field--full">
-          <span>ID</span>
-          <input
-            value={article.id}
-            onChange={(e) => updateMeta("id", e.target.value)}
-            disabled={!isNew}
-          />
-        </label>
-      </div>
-    </section>
-  );
-}
-
-function ArticleMediaPanel({
-  article,
-  uploads,
-  uploadingImage,
-  updateMeta,
-  updateArray,
-  uploadImageForField,
-}: {
-  article: ArticleAdmin;
-  uploads: Upload[];
-  uploadingImage: string | null;
-  updateMeta: UpdateMeta;
-  updateArray: UpdateArray;
-  uploadImageForField: (fieldKey: string, file: File, apply: (url: string) => void) => void;
-}) {
-  return (
-    <section className="admin-bento-panel">
-      <div className="admin-bento-panel__head">
-        <h2>Ассеты</h2>
-      </div>
-      <div className="admin-editor-images">
-        {article.folderPreviewImages.map((img, i) => (
-          <ImageField
-            key={i}
-            label={`Превью ${i + 1}`}
-            value={img}
-            uploads={uploads}
-            uploading={uploadingImage === `preview-${i}`}
-            onChange={(value) => updateArray("folderPreviewImages", i, value)}
-            onUpload={(file) =>
-              uploadImageForField(`preview-${i}`, file, (url) =>
-                updateArray("folderPreviewImages", i, url),
-              )
-            }
-          />
-        ))}
-        <ImageField
-          label="Бот-аватар"
-          value={article.botThinkingImage}
-          uploads={uploads}
-          uploading={uploadingImage === "bot"}
-          onChange={(value) => updateMeta("botThinkingImage", value)}
-          onUpload={(file) =>
-            uploadImageForField("bot", file, (url) => updateMeta("botThinkingImage", url))
-          }
-        />
-      </div>
-    </section>
-  );
-}
-
-function ArticleStylePanel({
-  article,
-  updateArray,
-}: {
-  article: ArticleAdmin;
-  updateArray: UpdateArray;
-}) {
-  return (
-    <section className="admin-bento-panel">
-      <div className="admin-bento-panel__head">
-        <h2>Акцент</h2>
-      </div>
-      <div className="admin-editor-colors">
-        {article.accent.map((color, i) => (
-          <label key={i} className="admin-editor-color">
-            <span className="admin-editor-color__swatch" style={{ background: color }} />
-            <span>Цвет {i + 1}</span>
-            <input type="color" value={color} onChange={(e) => updateArray("accent", i, e.target.value)} />
-          </label>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function EditorCanvas({
-  article,
-  onContentChange,
-}: {
-  article: ArticleAdmin;
-  onContentChange: (content: Block) => void;
-}) {
-  return (
-    <section className="admin-editor-canvas">
-      <div className="admin-editor-pane">
-        <TipTapEditor initialContent={article.content} onChange={onContentChange} />
-      </div>
-    </section>
-  );
-}
-
-function EditorInspector({
-  article,
-  isNew,
-  hasChanges,
-  uploads,
-  uploadingImage,
-  updateMeta,
-  updateArray,
-  uploadImageForField,
-}: {
-  article: ArticleAdmin;
-  isNew: boolean;
-  hasChanges: boolean;
-  uploads: Upload[];
-  uploadingImage: string | null;
-  updateMeta: UpdateMeta;
-  updateArray: UpdateArray;
-  uploadImageForField: (fieldKey: string, file: File, apply: (url: string) => void) => void;
-}) {
-  return (
-    <aside className="admin-editor-inspector">
-      <PublishPanel article={article} hasChanges={hasChanges} />
-      <ArticleDetailsPanel article={article} isNew={isNew} updateMeta={updateMeta} />
-      <ArticleMediaPanel
-        article={article}
-        uploads={uploads}
-        uploadingImage={uploadingImage}
-        updateMeta={updateMeta}
-        updateArray={updateArray}
-        uploadImageForField={uploadImageForField}
-      />
-      <ArticleStylePanel article={article} updateArray={updateArray} />
-    </aside>
-  );
-}
-
 export function ArticleEditPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -338,6 +47,17 @@ export function ArticleEditPage() {
   const [error, setError] = useState("");
   const [loadFailed, setLoadFailed] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasChanges) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasChanges]);
 
   useEffect(() => {
     if (isNew) return;
@@ -393,19 +113,33 @@ export function ArticleEditPage() {
   };
 
   const handleSave = async (publish = false) => {
-    setSaving(true);
     setError("");
+
+    const data = { ...article };
+    if (isNew && !data.id.trim()) {
+      data.id = generateId(data);
+    }
+
+    const validationError = validateArticle(data);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    const payload = { ...data, status: publish ? "published" : data.status };
+
+    setSaving(true);
     try {
-      const data = { ...article, status: publish ? "published" : article.status };
       if (isNew) {
-        await createArticle(data);
+        await createArticle(payload);
       } else {
-        await updateArticle(id, data);
+        await updateArticle(id, payload);
       }
       setHasChanges(false);
       navigate("/admin/articles");
-    } catch (_err) {
-      setError("Не удалось сохранить статью");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Не удалось сохранить статью";
+      setError(message);
     } finally {
       setSaving(false);
     }

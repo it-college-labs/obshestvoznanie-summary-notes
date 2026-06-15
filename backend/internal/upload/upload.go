@@ -9,20 +9,17 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/nksv-ilya/neuroarchive/internal/models"
 )
 
 type Service struct {
 	uploadDir string
-	baseURL   string
 }
 
-func New(uploadDir, baseURL string) *Service {
+func New(uploadDir string) *Service {
 	return &Service{
 		uploadDir: uploadDir,
-		baseURL:   baseURL,
 	}
 }
 
@@ -59,8 +56,7 @@ func (s *Service) Save(file io.Reader, header *models.Upload) (string, error) {
 }
 
 func (s *Service) URL(filename string) string {
-	base := strings.TrimSuffix(s.baseURL, "/")
-	return base + "/uploads/" + filename
+	return "/uploads/" + filename
 }
 
 func (s *Service) LocalPath(filename string) string {

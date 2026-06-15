@@ -34,13 +34,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	au, err := auth.New(cfg.AdminPasswordHash, cfg.JWTSecret, cfg.SecureCookie, "")
+	au, err := auth.New(cfg.AdminPasswordHash, cfg.JWTSecret, cfg.SecureCookie, cfg.AppDomain)
 	if err != nil {
 		slog.Error("failed to init auth", "error", err)
 		os.Exit(1)
 	}
 
-	up := upload.New(cfg.UploadDir, cfg.BaseURL)
+	up := upload.New(cfg.UploadDir)
 
 	server := api.New(st, au, up, cfg.BaseURL)
 
