@@ -1,4 +1,5 @@
 import { motion, type HTMLMotionProps } from "motion/react";
+import "../../styles/orb.css";
 
 type OrbBaseProps = {
   image: string;

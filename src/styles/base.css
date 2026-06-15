@@ -1,0 +1,91 @@
+@import url("https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&family=Onest:wght@400;500;600;700;800;900&display=swap");
+
+:root {
+  color-scheme: dark;
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --font-sans: "Onest", "Manrope", "Golos Text", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Manrope", "Onest", "Golos Text", ui-sans-serif, system-ui, sans-serif;
+  --font-reading: "Golos Text", "Onest", "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --archive-bg: #f5f2eb;
+  --ink: #15181f;
+  --muted: #667085;
+  --paper: #f5f2eb;
+  --paper-panel: #141413;
+  --paper-panel-soft: #20201d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: #0d0e0d;
+}
+
+body {
+  font-family: var(--font-sans);
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(172, 41, 84, 0.055), transparent 28%),
+    radial-gradient(circle at 84% 20%, rgba(255, 255, 255, 0.035), transparent 30%),
+    linear-gradient(135deg, #0d0e0d 0%, #141413 48%, #090a09 100%);
+  color: #f8fafc;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: inherit;
+}
+
+#root,
+.flow-stage {
+  min-height: 100vh;
+}
+
+.flow-stage {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    linear-gradient(180deg, rgba(12, 13, 12, 0.36), rgba(12, 13, 12, 0.78)),
+    radial-gradient(circle at 50% 54%, rgba(172, 41, 84, 0.12), transparent 0 18%, rgba(172, 41, 84, 0) 42%),
+    image-set(
+      url("../../public/assets/backgrounds/intro-acid.webp") type("image/webp") 1x,
+      url("../../public/assets/backgrounds/intro-acid.png") type("image/png") 1x
+    ) center / cover no-repeat,
+    linear-gradient(180deg, rgba(16, 17, 16, 0.82), rgba(8, 9, 9, 0.92));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

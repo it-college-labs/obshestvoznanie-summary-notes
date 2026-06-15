@@ -3,7 +3,6 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   type KeyboardEvent,
   type MouseEvent,
-  type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -14,43 +13,28 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ArticleFolderCard } from "../archive/ArticleFolderCard";
 import { StreamingArticle, type GenerationPhase } from "../article/StreamingArticle";
 import { LivingOrbButton } from "../orb/LivingOrb";
-import { publicAsset } from "../../content/assets";
-import type { ArticleConfig } from "../../content/types";
+import { useArticles } from "../../hooks/useArticles";
+import { useViewport } from "../../flow/useViewport";
+import { useCoarsePointer } from "../../flow/useCoarsePointer";
+import { useFlowTimers } from "../../flow/useFlowTimers";
+import { useAssistantPanel } from "../../flow/useAssistantPanel";
+import { useArticleResize } from "../../flow/useArticleResize";
+import { useAdminHint } from "../../flow/useAdminHint";
+import {
+  type FlowPhase,
+  getShellRect,
+  getBotRect,
+  getArticleIdFromPath,
+  getInitialPhase,
+  isReadableArticlePhase,
+} from "../../flow/layout";
+import type { ArticleListItem } from "../../api/types";
+import "../../styles/flow.css";
+import "../../styles/archive.css";
+import "../../styles/article.css";
+import "../../styles/mdx.css";
 
-type FlowPhase =
-  | "intro"
-  | "movingToArchive"
-  | "openingArchive"
-  | "settlingArchive"
-  | "archive"
-  | "preparingArticle"
-  | "closingToArticle"
-  | "preparingArchive"
-  | "closingToArchive"
-  | "resettingToIntro"
-  | "openingArticle"
-  | "thinking"
-  | "streaming"
-  | "ready";
-
-type Rect = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  radius: number;
-};
-
-type Viewport = {
-  width: number;
-  height: number;
-};
-
-type NeuroFlowProps = {
-  articles: ArticleConfig[];
-};
-
-const BOT_IMAGE = publicAsset("assets/placeholders/bot-placeholder.png");
+const BOT_IMAGE = "assets/placeholders/bot-placeholder.png";
 const INTRO_DELAY = 1550;
 const SHELL_MORPH_MS = 960;
 const ROUTE_SWAP_MS = SHELL_MORPH_MS + 40;
@@ -58,234 +42,9 @@ const ARCHIVE_UNLOAD_MS = 560;
 const ARTICLE_UNLOAD_MS = 520;
 const BOT_SETTLE_MS = 860;
 const RESET_TO_INTRO_MS = 980;
-const ARTICLE_DEFAULT_WIDTH = 1160;
-const ARTICLE_MIN_WIDTH = 760;
-const BOT_MESSAGES = [
-  "Читайте внимательно!",
-  "Да, я это собрал сам!",
-  "Наведи на папку, там спрятаны превью.",
-  "Тут всё разложено по неделям.",
-  "Выбирай тему, а я подержу переход.",
-  "Превью выезжают прямо из папки.",
-];
-const RESET_MESSAGES = [
-  "Хотите начать сначала? :)",
-  "Вернуть первый экран?",
-  "Соберём маршрут заново?",
-];
 
-function getViewport(): Viewport {
-  return {
-    width: window.innerWidth,
-    height: window.innerHeight,
-  };
-}
-
-function useViewport() {
-  const [viewport, setViewport] = useState(() => getViewport());
-
-  useEffect(() => {
-    let raf = 0;
-    const sync = () => {
-      if (raf) return;
-      raf = window.requestAnimationFrame(() => {
-        raf = 0;
-        setViewport(getViewport());
-      });
-    };
-    window.addEventListener("resize", sync);
-    return () => {
-      window.removeEventListener("resize", sync);
-      window.cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  return viewport;
-}
-
-function useCoarsePointer() {
-  const [isCoarse, setIsCoarse] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia("(hover: none), (pointer: coarse)").matches;
-  });
-
-  useEffect(() => {
-    const media = window.matchMedia("(hover: none), (pointer: coarse)");
-    const sync = () => setIsCoarse(media.matches);
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
-
-  return isCoarse;
-}
-
-function getInset(width: number) {
-  if (width <= 640) return 16;
-  return Math.max(20, Math.min(48, width * 0.04));
-}
-
-function getShellContentInset(width: number) {
-  return Math.max(16, Math.min(24, width * 0.02));
-}
-
-function getBotSize(width: number) {
-  return Math.max(116, Math.min(300, width * 0.23));
-}
-
-function getIntroBotRect(viewport: Viewport): Rect {
-  const size = getBotSize(viewport.width);
-
-  return {
-    x: viewport.width / 2 - size / 2,
-    y: viewport.height / 2 - size / 2,
-    width: size,
-    height: size,
-    radius: 999,
-  };
-}
-
-function getTransferBotRect(viewport: Viewport): Rect {
-  const inset = getInset(viewport.width);
-  const size = Math.max(96, Math.min(184, viewport.width * 0.15));
-
-  return {
-    x: viewport.width - inset - size,
-    y: viewport.height - inset - size,
-    width: size,
-    height: size,
-    radius: 999,
-  };
-}
-
-function getArchiveBotRect(viewport: Viewport): Rect {
-  const archive = getArchiveRect(viewport);
-  const contentInset = getShellContentInset(viewport.width);
-  const size = Math.max(104, Math.min(176, viewport.width * 0.14));
-
-  if (viewport.width <= 760) {
-    return {
-      x: archive.x + archive.width - contentInset - size - 10,
-      y: archive.y + archive.height - contentInset - size - 12,
-      width: size,
-      height: size,
-      radius: 999,
-    };
-  }
-
-  const railWidth = Math.max(236, Math.min(340, archive.width * 0.28));
-  const railLeft = archive.x + archive.width - contentInset - railWidth;
-
-  return {
-    x: railLeft + railWidth / 2 - size / 2,
-    y: archive.y + archive.height / 2 - size / 2,
-    width: size,
-    height: size,
-    radius: 999,
-  };
-}
-
-function getArchiveRect(viewport: Viewport): Rect {
-  const inset = getInset(viewport.width);
-
-  return {
-    x: inset,
-    y: inset,
-    width: viewport.width - inset * 2,
-    height: viewport.height - inset * 2,
-    radius: viewport.width <= 640 ? 24 : 32,
-  };
-}
-
-function clampArticleWidth(width: number, viewport: Viewport) {
-  const inset = getInset(viewport.width);
-  const maxWidth = viewport.width - inset * 2;
-  const minWidth = Math.min(ARTICLE_MIN_WIDTH, maxWidth);
-
-  return Math.max(minWidth, Math.min(maxWidth, width));
-}
-
-function getArticleRect(viewport: Viewport, articleWidth: number): Rect {
-  const inset = getInset(viewport.width);
-  const width = clampArticleWidth(articleWidth, viewport);
-
-  return {
-    x: (viewport.width - width) / 2,
-    y: inset,
-    width,
-    height: viewport.height - inset * 2,
-    radius: viewport.width <= 640 ? 24 : 32,
-  };
-}
-
-function isTransferPhase(phase: FlowPhase) {
-  return (
-    phase === "movingToArchive" ||
-    phase === "closingToArticle" ||
-    phase === "closingToArchive"
-  );
-}
-
-function isReadableArticlePhase(phase: FlowPhase) {
-  return (
-    phase === "openingArticle" ||
-    phase === "thinking" ||
-    phase === "streaming" ||
-    phase === "ready"
-  );
-}
-
-function getShellRect(
-  phase: FlowPhase,
-  viewport: Viewport,
-  articleWidth: number,
-): Rect {
-  if (phase === "intro" || phase === "resettingToIntro") {
-    return getIntroBotRect(viewport);
-  }
-  if (isTransferPhase(phase)) {
-    return getTransferBotRect(viewport);
-  }
-  if (
-    phase === "openingArticle" ||
-    phase === "preparingArchive" ||
-    phase === "thinking" ||
-    phase === "streaming" ||
-    phase === "ready"
-  ) {
-    return getArticleRect(viewport, articleWidth);
-  }
-
-  return getArchiveRect(viewport);
-}
-
-function getBotRect(phase: FlowPhase, viewport: Viewport): Rect {
-  if (phase === "intro" || phase === "resettingToIntro") {
-    return getIntroBotRect(viewport);
-  }
-
-  if (
-    phase === "archive" ||
-    phase === "settlingArchive" ||
-    phase === "preparingArticle"
-  ) {
-    return getArchiveBotRect(viewport);
-  }
-
-  return getTransferBotRect(viewport);
-}
-
-function getArticleIdFromPath(pathname: string) {
-  const match = pathname.match(/^\/article\/([^/]+)/);
-  return match?.[1];
-}
-
-function getArticleById(articles: ArticleConfig[], articleId?: string) {
+function getArticleById(articles: ArticleListItem[], articleId?: string) {
   return articles.find((article) => article.id === articleId) ?? articles[0];
-}
-
-function getInitialPhase(pathname: string): FlowPhase {
-  if (getArticleIdFromPath(pathname)) return "ready";
-  return "intro";
 }
 
 function SkeletonThought() {
@@ -306,16 +65,14 @@ function SkeletonThought() {
   );
 }
 
-export function NeuroFlow({ articles }: NeuroFlowProps) {
+export function NeuroFlow() {
+  const { articles } = useArticles();
   const viewport = useViewport();
   const isCoarsePointer = useCoarsePointer();
   const navigate = useNavigate();
   const location = useLocation();
   const shouldReduceMotion = useReducedMotion();
-  const timers = useRef<number[]>([]);
-  const assistantCloseTimer = useRef<number | null>(null);
   const pendingRouteTransition = useRef<"article" | "archive" | null>(null);
-  const resizeCleanup = useRef<(() => void) | null>(null);
   const [phase, setPhase] = useState<FlowPhase>(() =>
     getInitialPhase(location.pathname),
   );
@@ -323,15 +80,50 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     getInitialPhase(location.pathname) !== "intro",
   );
   const [selectedArticleId, setSelectedArticleId] = useState(
-    () => getArticleIdFromPath(location.pathname) ?? articles[0].id,
+    () => getArticleIdFromPath(location.pathname) ?? articles[0]?.id ?? "",
   );
-  const [assistantPanelActive, setAssistantPanelActive] = useState(false);
-  const [botMessageIndex, setBotMessageIndex] = useState(0);
-  const [botInteractionCount, setBotInteractionCount] = useState(0);
-  const [articleWidth, setArticleWidth] = useState(ARTICLE_DEFAULT_WIDTH);
+
+  useEffect(() => {
+    if (articles.length > 0 && !selectedArticleId) {
+      setSelectedArticleId(articles[0].id);
+    }
+  }, [articles, selectedArticleId]);
+
+  const { clearTimers, schedule } = useFlowTimers();
+  const {
+    assistantPanelActive,
+    currentBotMessage,
+    isResetTip,
+    setAssistantPanelActive,
+    setBotMessageIndex,
+    setBotInteractionCount,
+    showAssistantPanel,
+    hideAssistantPanel,
+    incrementBotInteraction,
+    clearAssistantCloseTimer,
+  } = useAssistantPanel({ phase });
+  const handleArticleWidthChange = useCallback(() => {}, []);
+  const {
+    articleWidth,
+    startResize,
+    resizeHandlersReady,
+    handleResizeKeyDown,
+    stopResize,
+  } = useArticleResize({
+    viewport,
+    phase,
+    onWidthChange: handleArticleWidthChange,
+  });
+  const {
+    adminHintVisible,
+    setAdminHintVisible,
+    onPointerDown,
+    onPointerUp,
+    onPointerLeave,
+  } = useAdminHint();
 
   const selectedArticle = useMemo(
-    () => getArticleById(articles, selectedArticleId),
+    () => (articles.length > 0 ? getArticleById(articles, selectedArticleId) : undefined),
     [articles, selectedArticleId],
   );
 
@@ -346,13 +138,6 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
       : botRect;
   const shellShouldRender =
     phase !== "intro" && phase !== "movingToArchive";
-  const isResetTip =
-    phase === "archive" &&
-    botInteractionCount > 0 &&
-    botInteractionCount % 3 === 0;
-  const currentBotMessage = isResetTip
-    ? RESET_MESSAGES[(botInteractionCount / 3 - 1) % RESET_MESSAGES.length]
-    : BOT_MESSAGES[botMessageIndex];
   const assistantCopyVisible = assistantPanelActive || isResetTip;
   const botIsActive =
     (phase !== "archive" && phase !== "ready") ||
@@ -384,50 +169,6 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     phase === "thinking" ||
     phase === "streaming" ||
     phase === "ready";
-  const articleCanResize =
-    viewport.width > 760 &&
-    (phase === "thinking" || phase === "streaming" || phase === "ready");
-
-  const clearTimers = () => {
-    timers.current.forEach((timer) => window.clearTimeout(timer));
-    timers.current = [];
-  };
-
-  const clearAssistantCloseTimer = () => {
-    if (assistantCloseTimer.current === null) return;
-    window.clearTimeout(assistantCloseTimer.current);
-    assistantCloseTimer.current = null;
-  };
-
-  const showAssistantPanel = useCallback(() => {
-    if (phase !== "archive") return;
-    clearAssistantCloseTimer();
-    setAssistantPanelActive(true);
-  }, [phase]);
-
-  const hideAssistantPanel = useCallback(() => {
-    if (phase !== "archive" || isResetTip) return;
-    clearAssistantCloseTimer();
-    assistantCloseTimer.current = window.setTimeout(() => {
-      setAssistantPanelActive(false);
-      assistantCloseTimer.current = null;
-    }, 70);
-  }, [isResetTip, phase]);
-
-  const schedule = (callback: () => void, delay: number) => {
-    const timer = window.setTimeout(callback, delay);
-    timers.current.push(timer);
-  };
-
-  useEffect(
-    () => () => {
-      clearTimers();
-      clearAssistantCloseTimer();
-      resizeCleanup.current?.();
-      resizeCleanup.current = null;
-    },
-    [],
-  );
 
   useEffect(() => {
     if (phase !== "intro" || introBotArrived) return;
@@ -512,7 +253,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
       schedule(() => {
         pendingRouteTransition.current = "article";
         setPhase("openingArticle");
-        navigate(`/article/${selectedArticle.id}`);
+        if (selectedArticle) navigate(`/article/${selectedArticle.id}`);
       }, shouldReduceMotion ? 80 : ROUTE_SWAP_MS);
     }
 
@@ -556,7 +297,16 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     }
 
     return clearTimers;
-  }, [navigate, phase, selectedArticle.id, shouldReduceMotion]);
+  }, [clearTimers, navigate, phase, schedule, selectedArticle, selectedArticle?.id, setAssistantPanelActive, setBotInteractionCount, setBotMessageIndex, shouldReduceMotion]);
+
+  useEffect(
+    () => () => {
+      clearTimers();
+      clearAssistantCloseTimer();
+      stopResize();
+    },
+    [clearTimers, clearAssistantCloseTimer, stopResize],
+  );
 
   const activateArchive = useCallback(() => {
     if (phase !== "intro" || !introBotArrived) return;
@@ -564,19 +314,19 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
   }, [introBotArrived, phase]);
 
   const openArticle = useCallback(
-    (article: ArticleConfig) => {
+    (article: ArticleListItem) => {
       if (phase !== "archive") return;
       setSelectedArticleId(article.id);
       setAssistantPanelActive(false);
       setPhase("preparingArticle");
     },
-    [phase],
+    [phase, setAssistantPanelActive, setSelectedArticleId],
   );
 
   const backToArchive = useCallback(() => {
     setAssistantPanelActive(false);
     setPhase("preparingArchive");
-  }, []);
+  }, [setAssistantPanelActive]);
 
   const handleBotClick = useCallback(() => {
     if (phase === "intro") {
@@ -585,23 +335,15 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     }
 
     if (phase === "archive") {
-      setBotInteractionCount((count) => {
-        const nextCount = count + 1;
-
-        if (nextCount % 3 !== 0) {
-          setBotMessageIndex((index) => (index + 1) % BOT_MESSAGES.length);
-        }
-
-        return nextCount;
-      });
-      setAssistantPanelActive(true);
+      incrementBotInteraction();
+      showAssistantPanel();
       return;
     }
 
     if (isReadableArticlePhase(phase)) {
       backToArchive();
     }
-  }, [activateArchive, backToArchive, phase]);
+  }, [activateArchive, backToArchive, incrementBotInteraction, phase, showAssistantPanel]);
 
   const handleRailClick = useCallback(
     (event: MouseEvent<HTMLElement>) => {
@@ -622,90 +364,12 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     [handleBotClick, phase],
   );
 
-  const resizeArticleBy = useCallback(
-    (delta: number) => {
-      setArticleWidth((width) => clampArticleWidth(width + delta, viewport));
-    },
-    [viewport],
-  );
-
-  const handleArticleResizeKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLButtonElement>, side: "left" | "right") => {
-      const step = event.shiftKey ? 96 : 32;
-
-      if (side === "left") {
-        if (event.key === "ArrowLeft") {
-          event.preventDefault();
-          resizeArticleBy(step);
-        }
-        if (event.key === "ArrowRight") {
-          event.preventDefault();
-          resizeArticleBy(-step);
-        }
-        return;
-      }
-
-      if (event.key === "ArrowRight") {
-        event.preventDefault();
-        resizeArticleBy(step);
-      }
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        resizeArticleBy(-step);
-      }
-    },
-    [resizeArticleBy],
-  );
-
-  const startArticleResize = useCallback(
-    (
-      event: ReactPointerEvent<HTMLButtonElement>,
-      side: "left" | "right",
-    ) => {
-      if (!articleCanResize) return;
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      resizeCleanup.current?.();
-
-      const startX = event.clientX;
-      const startWidth = shellRect.width;
-      const direction = side === "left" ? -1 : 1;
-      const previousCursor = document.body.style.cursor;
-      const previousUserSelect = document.body.style.userSelect;
-
-      document.body.style.cursor = "ew-resize";
-      document.body.style.userSelect = "none";
-
-      const handleMove = (moveEvent: PointerEvent) => {
-        const delta = (moveEvent.clientX - startX) * direction * 2;
-        setArticleWidth(clampArticleWidth(startWidth + delta, viewport));
-      };
-
-      const stopResize = () => {
-        window.removeEventListener("pointermove", handleMove);
-        window.removeEventListener("pointerup", stopResize);
-        window.removeEventListener("pointercancel", stopResize);
-        document.body.style.cursor = previousCursor;
-        document.body.style.userSelect = previousUserSelect;
-        resizeCleanup.current = null;
-      };
-
-      resizeCleanup.current = stopResize;
-      window.addEventListener("pointermove", handleMove);
-      window.addEventListener("pointerup", stopResize, { once: true });
-      window.addEventListener("pointercancel", stopResize, { once: true });
-    },
-    [articleCanResize, shellRect.width, viewport],
-  );
-
   const restartFlow = useCallback(() => {
     clearTimers();
     clearAssistantCloseTimer();
     setAssistantPanelActive(false);
     setPhase("resettingToIntro");
-  }, []);
+  }, [clearAssistantCloseTimer, clearTimers, setAssistantPanelActive]);
 
   const streamingPhase: Exclude<GenerationPhase, "thinking"> =
     phase === "streaming" ? "streaming" : "ready";
@@ -798,9 +462,26 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
                     <span className="window-dots" aria-hidden="true">
                       <span />
                       <span />
-                      <span />
+                      <span
+                        onPointerDown={onPointerDown}
+                        onPointerUp={onPointerUp}
+                        onPointerLeave={onPointerLeave}
+                      />
                     </span>
                     <span className="archive-path">Конспекты по обществознанию</span>
+                    {adminHintVisible && (
+                      <a
+                        className="admin-hint-link"
+                        href="/admin"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setAdminHintVisible(false);
+                          navigate("/admin");
+                        }}
+                      >
+                        Админка
+                      </a>
+                    )}
                   </motion.header>
 
                     <div className="folder-grid">
@@ -945,32 +626,34 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
                     animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                     transition={{ duration: 0.74, ease: [0.22, 1, 0.36, 1] }}
                   >
-                    <StreamingArticle
-                      key={selectedArticle.id}
-                      article={selectedArticle}
-                      phase={streamingPhase}
-                    />
+                    {selectedArticle && (
+                      <StreamingArticle
+                        key={selectedArticle.id}
+                        article={selectedArticle}
+                        phase={streamingPhase}
+                      />
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
             </motion.div>
           )}
         </AnimatePresence>
-        {articleCanResize && (
+        {resizeHandlersReady && (
           <>
             <button
               type="button"
               className="article-resize-handle article-resize-handle--left"
               aria-label="Изменить ширину статьи слева"
-              onPointerDown={(event) => startArticleResize(event, "left")}
-              onKeyDown={(event) => handleArticleResizeKeyDown(event, "left")}
+              onPointerDown={(event) => startResize(event, "left")}
+              onKeyDown={(event) => handleResizeKeyDown(event, "left")}
             />
             <button
               type="button"
               className="article-resize-handle article-resize-handle--right"
               aria-label="Изменить ширину статьи справа"
-              onPointerDown={(event) => startArticleResize(event, "right")}
-              onKeyDown={(event) => handleArticleResizeKeyDown(event, "right")}
+              onPointerDown={(event) => startResize(event, "right")}
+              onKeyDown={(event) => handleResizeKeyDown(event, "right")}
             />
           </>
         )}
@@ -980,7 +663,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
         className={`flow-bot ${phase === "archive" ? "flow-bot--archive" : ""} ${
           isResetTip ? "flow-bot--reset-tip" : ""
         }`}
-        image={selectedArticle.botThinkingImage ?? BOT_IMAGE}
+        image={selectedArticle?.botThinkingImage ?? BOT_IMAGE}
         active={botIsActive}
         ariaLabel="Управлять нейроархивом"
         onClick={handleBotClick}

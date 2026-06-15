@@ -1,12 +1,10 @@
-import { MDXProvider } from "@mdx-js/react";
-import { Suspense } from "react";
-import { mdxComponents } from "../mdx/ArticleComponents";
-import type { ArticleConfig } from "../../content/types";
+import { useArticle } from "../../hooks/useArticle";
+import type { ArticleListItem } from "../../api/types";
 
 export type GenerationPhase = "thinking" | "streaming" | "ready";
 
 type StreamingArticleProps = {
-  article: ArticleConfig;
+  article: ArticleListItem;
   phase: Exclude<GenerationPhase, "thinking">;
 };
 
@@ -21,7 +19,7 @@ function ArticleSkeleton() {
 }
 
 export function StreamingArticle({ article, phase }: StreamingArticleProps) {
-  const MdxArticle = article.mdx;
+  const { article: articlePublic, loading } = useArticle(article.id);
 
   return (
     <div className={`stream-shell stream-shell--${phase}`}>
@@ -42,11 +40,14 @@ export function StreamingArticle({ article, phase }: StreamingArticleProps) {
       </header>
 
       <div className="article-content">
-        <MDXProvider components={mdxComponents}>
-          <Suspense fallback={<ArticleSkeleton />}>
-            <MdxArticle />
-          </Suspense>
-        </MDXProvider>
+        {loading || !articlePublic ? (
+          <ArticleSkeleton />
+        ) : (
+          <div
+            className="article-render-wrapper"
+            dangerouslySetInnerHTML={{ __html: articlePublic.html }}
+          />
+        )}
       </div>
     </div>
   );

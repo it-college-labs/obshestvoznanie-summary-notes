@@ -1,14 +1,1 @@
-import type { ComponentType, LazyExoticComponent } from "react";
-
-export type ArticleConfig = {
-  id: string;
-  week: string;
-  title: string;
-  annotation: string;
-  tags: string[];
-  accent: [string, string, string];
-  folderPreviewImages: [string, string, string];
-  botThinkingImage: string;
-  mdx: ComponentType<Record<string, unknown>> | LazyExoticComponent<ComponentType<Record<string, unknown>>>;
-  readingTime: string;
-};
+export type { ArticleMeta, ArticleListItem, ArticlePublic, ArticleAdmin, Block, Mark, Heading } from "../api/types";

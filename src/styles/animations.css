@@ -1,0 +1,99 @@
+@keyframes gridDrift {
+  from {
+    background-position: 0 0, 0 0;
+  }
+
+  to {
+    background-position: 0 48px, 48px 0;
+  }
+}
+
+@keyframes auraFlow {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+
+  50% {
+    transform: scale(1.08) rotate(9deg);
+  }
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.96);
+    opacity: 0.48;
+  }
+
+  100% {
+    transform: scale(1.22);
+    opacity: 0;
+  }
+}
+
+@keyframes generationSweep {
+  from {
+    background-position: 0% 0%;
+  }
+
+  to {
+    background-position: 240% 0%;
+  }
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes archiveShine {
+  0% {
+    opacity: 0.88;
+    transform: translateX(0) scale(1);
+  }
+
+  72% {
+    opacity: 0.62;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(-20%) scale(1.08);
+  }
+}
+
+@keyframes streamIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes scanDown {
+  0% {
+    top: -110px;
+  }
+
+  100% {
+    top: calc(100% - 40px);
+  }
+}
+
+@keyframes streamCursor {
+  0% {
+    top: 18px;
+    transform: scale(1.1);
+  }
+
+  78% {
+    opacity: 1;
+  }
+
+  100% {
+    top: calc(100% - 20px);
+    transform: scale(0.62);
+    opacity: 0;
+  }
+}

@@ -1,14 +1,14 @@
 import { motion, useReducedMotion } from "motion/react";
 import type { CSSProperties } from "react";
 import { memo, useState } from "react";
-import type { ArticleConfig } from "../../content/types";
+import type { ArticleListItem } from "../../api/types";
 
 type ArticleFolderCardProps = {
-  article: ArticleConfig;
+  article: ArticleListItem;
   index: number;
   isLeaving?: boolean;
   isCoarsePointer: boolean;
-  onOpen: (article: ArticleConfig) => void;
+  onOpen: (article: ArticleListItem) => void;
 };
 
 const folderPalette = [
