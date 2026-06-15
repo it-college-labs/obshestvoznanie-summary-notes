@@ -11,6 +11,7 @@ export function UploadsPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -43,18 +44,35 @@ export function UploadsPage() {
     }
   };
 
-  const copyUrl = (url: string) => {
-    navigator.clipboard.writeText(url).catch(() => {});
+  const copyUrl = (upload: Upload) => {
+    navigator.clipboard.writeText(upload.url).then(() => {
+      setCopiedId(upload.id);
+      window.setTimeout(() => setCopiedId(null), 1400);
+    }).catch(() => {});
   };
 
   return (
     <div className="admin-uploads">
       <header className="admin-list-header">
-        <h1>Загрузки</h1>
-        <button type="button" onClick={() => navigate("/admin/articles")}>
-          <ArrowLeft size={16} />
-          Назад к статьям
-        </button>
+        <div className="admin-page-title">
+          <h1>Загрузки</h1>
+          <span>{uploads.length} файлов</span>
+        </div>
+        <div className="admin-list-actions">
+          <button type="button" className="admin-button-ghost" onClick={() => navigate("/admin/articles")}>
+            <ArrowLeft size={16} />
+            К статьям
+          </button>
+          <button
+            type="button"
+            className="admin-button-primary"
+            disabled={uploading}
+            onClick={() => inputRef.current?.click()}
+          >
+            <UploadCloud size={16} />
+            {uploading ? "Загрузка…" : "Загрузить"}
+          </button>
+        </div>
       </header>
 
       {error && <p className="admin-error">{error}</p>}
@@ -62,14 +80,10 @@ export function UploadsPage() {
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/png,image/jpeg,image/webp,image/gif"
         style={{ display: "none" }}
         onChange={handleFileChange}
       />
-      <button type="button" disabled={uploading} onClick={() => inputRef.current?.click()}>
-        <UploadCloud size={16} />
-        {uploading ? "Загрузка…" : "Загрузить картинку"}
-      </button>
 
       {loading ? (
         <p className="admin-loading">Загрузка…</p>
@@ -81,10 +95,10 @@ export function UploadsPage() {
             <div key={up.id} className="admin-upload-card">
               <img src={up.url} alt={up.filename} loading="lazy" />
               <div className="admin-upload-card__info">
-                <code>{up.url}</code>
-                <button type="button" onClick={() => copyUrl(up.url)}>
+                <span className="admin-upload-card__name">{up.filename}</span>
+                <button type="button" className="admin-button-outline" onClick={() => copyUrl(up)}>
                   <Copy size={14} />
-                  Копировать URL
+                  {copiedId === up.id ? "Скопировано" : "Копировать"}
                 </button>
               </div>
             </div>

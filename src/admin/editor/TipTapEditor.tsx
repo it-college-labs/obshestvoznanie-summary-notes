@@ -68,8 +68,8 @@ export function TipTapEditor({ initialContent, onChange }: TipTapEditorProps) {
 
   return (
     <div className="tiptap-editor">
-      <Toolbar editor={editor} />
       <div className="tiptap-editor__canvas">
+        <Toolbar editor={editor} />
         <EditorContent editor={editor} className="tiptap-editor__content" />
         <InlineInsertMenu editor={editor} />
       </div>

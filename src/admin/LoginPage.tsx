@@ -32,7 +32,7 @@ export function LoginPage() {
           autoFocus
         />
         {error && <p className="admin-login-error">{error}</p>}
-        <button type="submit" disabled={loading || !password}>
+        <button type="submit" className="admin-button-primary" disabled={loading || !password}>
           {loading ? "Вход…" : "Войти"}
         </button>
       </form>

@@ -1,8 +1,10 @@
-import { LogOut, Pencil, Plus, Trash2, UploadCloud } from "lucide-react";
+import { AnimatePresence } from "motion/react";
+import { LogOut, Plus, UploadCloud } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { listAdminArticles, deleteArticle, toggleArticlePublish } from "../api/admin";
 import { useAuth } from "./useAuth";
+import { ArticleCard } from "./ArticleCard";
 import type { ArticleListItem } from "../api/types";
 
 export function ArticlesListPage() {
@@ -29,11 +31,10 @@ export function ArticlesListPage() {
     load();
   }, []);
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Удалить статью «${title}»? Это действие необратимо.`)) return;
+  const handleDelete = async (id: string) => {
     try {
       await deleteArticle(id);
-      await load();
+      setArticles((prev) => prev.filter((article) => article.id !== id));
     } catch (_err) {
       setError("Не удалось удалить статью");
     }
@@ -41,8 +42,10 @@ export function ArticlesListPage() {
 
   const handlePublishToggle = async (id: string) => {
     try {
-      await toggleArticlePublish(id);
-      await load();
+      const { status } = await toggleArticlePublish(id);
+      setArticles((prev) =>
+        prev.map((article) => (article.id === id ? { ...article, status } : article)),
+      );
     } catch (_err) {
       setError("Не удалось изменить статус");
     }
@@ -54,16 +57,14 @@ export function ArticlesListPage() {
   };
 
   const filtered = articles.filter((a) => (filter === "all" ? true : a.status === filter));
-  const statusLabel = (status: ArticleListItem["status"]) => {
-    if (status === "published") return "Опубликована";
-    if (status === "archived") return "Архив";
-    return "Черновик";
-  };
 
   return (
     <div className="admin-list">
       <header className="admin-list-header">
-        <h1>Статьи</h1>
+        <div className="admin-page-title">
+          <h1>Статьи</h1>
+          <span>{articles.length} всего</span>
+        </div>
         <div className="admin-list-actions">
           <select value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}>
             <option value="all">Все</option>
@@ -71,15 +72,15 @@ export function ArticlesListPage() {
             <option value="draft">Черновики</option>
             <option value="archived">Архив</option>
           </select>
-          <button type="button" onClick={() => navigate("/admin/articles/new")}>
+          <button type="button" className="admin-button-primary" onClick={() => navigate("/admin/articles/new")}>
             <Plus size={16} />
             Новая статья
           </button>
-          <button type="button" onClick={() => navigate("/admin/uploads")}>
+          <button type="button" className="admin-button-outline" onClick={() => navigate("/admin/uploads")}>
             <UploadCloud size={16} />
             Загрузки
           </button>
-          <button type="button" onClick={handleLogout}>
+          <button type="button" className="admin-button-ghost" onClick={handleLogout}>
             <LogOut size={16} />
             Выйти
           </button>
@@ -89,40 +90,23 @@ export function ArticlesListPage() {
       {error && <p className="admin-error">{error}</p>}
 
       {loading ? (
-        <p>Загрузка…</p>
+        <p className="admin-loading">Загрузка…</p>
       ) : filtered.length === 0 ? (
         <div className="admin-empty">Статей с таким статусом нет</div>
       ) : (
         <div className="admin-articles-grid">
-          {filtered.map((article) => (
-            <div key={article.id} className={`admin-article-card admin-article-card--${article.status}`}>
-              <div className="admin-article-card__meta">
-                <span className="admin-article-card__week">{article.week}</span>
-                <h3>{article.title}</h3>
-                <p>{article.annotation}</p>
-                <span className={`admin-status admin-status--${article.status}`}>
-                  {statusLabel(article.status)}
-                </span>
-              </div>
-              <div className="admin-article-card__actions">
-                <button type="button" onClick={() => navigate(`/admin/articles/${article.id}`)}>
-                  <Pencil size={15} />
-                  Редактировать
-                </button>
-                <button type="button" onClick={() => handlePublishToggle(article.id)}>
-                  {article.status === "published" ? "Снять с публикации" : "Опубликовать"}
-                </button>
-                <button
-                  type="button"
-                  className="admin-button-danger"
-                  onClick={() => handleDelete(article.id, article.title)}
-                >
-                  <Trash2 size={15} />
-                  Удалить
-                </button>
-              </div>
-            </div>
-          ))}
+          <AnimatePresence initial={false}>
+            {filtered.map((article, index) => (
+              <ArticleCard
+                key={article.id}
+                article={article}
+                index={index}
+                onEdit={() => navigate(`/admin/articles/${article.id}`)}
+                onPublishToggle={() => handlePublishToggle(article.id)}
+                onDelete={() => handleDelete(article.id)}
+              />
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>
