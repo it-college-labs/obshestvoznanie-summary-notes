@@ -4,7 +4,6 @@ type OrbBaseProps = {
   image: string;
   active?: boolean;
   className?: string;
-  materialLayoutId?: string;
 };
 
 type LivingOrbButtonProps = OrbBaseProps &
@@ -12,28 +11,10 @@ type LivingOrbButtonProps = OrbBaseProps &
     ariaLabel: string;
   };
 
-type LivingOrbDisplayProps = OrbBaseProps &
-  Omit<HTMLMotionProps<"div">, "children" | "className"> & {
-    ariaLabel: string;
-  };
-
-function OrbCore({
-  image,
-  materialLayoutId,
-}: {
-  image: string;
-  materialLayoutId?: string;
-}) {
+function OrbCore({ image }: { image: string }) {
   return (
     <>
       <span className="living-orb__glow" aria-hidden="true" />
-      {materialLayoutId && (
-        <motion.span
-          layoutId={materialLayoutId}
-          className="living-orb__material"
-          aria-hidden="true"
-        />
-      )}
       <span className="living-orb__rim" aria-hidden="true">
         <img src={image} alt="" draggable="false" />
       </span>
@@ -47,7 +28,6 @@ export function LivingOrbButton({
   active = false,
   className = "",
   ariaLabel,
-  materialLayoutId,
   ...motionProps
 }: LivingOrbButtonProps) {
   return (
@@ -57,27 +37,7 @@ export function LivingOrbButton({
       className={`living-orb ${active ? "living-orb--active" : ""} ${className}`}
       {...motionProps}
     >
-      <OrbCore image={image} materialLayoutId={materialLayoutId} />
+      <OrbCore image={image} />
     </motion.button>
-  );
-}
-
-export function LivingOrbDisplay({
-  image,
-  active = false,
-  className = "",
-  ariaLabel,
-  materialLayoutId,
-  ...motionProps
-}: LivingOrbDisplayProps) {
-  return (
-    <motion.div
-      role="img"
-      aria-label={ariaLabel}
-      className={`living-orb ${active ? "living-orb--active" : ""} ${className}`}
-      {...motionProps}
-    >
-      <OrbCore image={image} materialLayoutId={materialLayoutId} />
-    </motion.div>
   );
 }

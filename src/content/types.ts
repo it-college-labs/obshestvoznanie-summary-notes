@@ -1,6 +1,4 @@
-import type { ComponentType } from "react";
-
-export type ArticleStatus = "ready" | "draft" | "needs-assets";
+import type { ComponentType, LazyExoticComponent } from "react";
 
 export type ArticleConfig = {
   id: string;
@@ -11,7 +9,6 @@ export type ArticleConfig = {
   accent: [string, string, string];
   folderPreviewImages: [string, string, string];
   botThinkingImage: string;
-  mdx: ComponentType<Record<string, unknown>>;
+  mdx: ComponentType<Record<string, unknown>> | LazyExoticComponent<ComponentType<Record<string, unknown>>>;
   readingTime: string;
-  status: ArticleStatus;
 };

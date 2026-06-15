@@ -1,4 +1,5 @@
 import { MDXProvider } from "@mdx-js/react";
+import { Suspense } from "react";
 import { mdxComponents } from "../mdx/ArticleComponents";
 import type { ArticleConfig } from "../../content/types";
 
@@ -8,6 +9,16 @@ type StreamingArticleProps = {
   article: ArticleConfig;
   phase: Exclude<GenerationPhase, "thinking">;
 };
+
+function ArticleSkeleton() {
+  return (
+    <div className="article-content">
+      <div className="thinking-line thinking-line--wide" />
+      <div className="thinking-line" />
+      <div className="thinking-line thinking-line--short" />
+    </div>
+  );
+}
 
 export function StreamingArticle({ article, phase }: StreamingArticleProps) {
   const MdxArticle = article.mdx;
@@ -32,7 +43,9 @@ export function StreamingArticle({ article, phase }: StreamingArticleProps) {
 
       <div className="article-content">
         <MDXProvider components={mdxComponents}>
-          <MdxArticle />
+          <Suspense fallback={<ArticleSkeleton />}>
+            <MdxArticle />
+          </Suspense>
         </MDXProvider>
       </div>
     </div>

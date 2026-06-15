@@ -1,20 +1,22 @@
+import { lazy } from "react";
 import { publicAsset } from "./assets";
-import HumanSociety from "./notes/week-01-human-society.mdx";
-import Consciousness from "./notes/week-02-social-norms.mdx";
-import SocietySystem from "./notes/week-03-society-as-system.mdx";
-import SocietyConcept from "./notes/week-04-society-concept.mdx";
-import TypesOfSociety from "./notes/week-05-types-of-society.mdx";
-import Evolution from "./notes/week-06-evolution.mdx";
-import CultureSpiritualLife from "./notes/week-07-culture-spiritual-life.mdx";
-import ScienceEducation from "./notes/week-08-science-education.mdx";
-import WorldReligions from "./notes/week-09-world-religions.mdx";
-import BankingCreditMortgage from "./notes/week-11-12-banking-credit-mortgage.mdx";
-import TaxesRussia from "./notes/week-13-taxes-russia.mdx";
-import FamilyMarriage from "./notes/week-14-family-marriage.mdx";
-import StratificationMobility from "./notes/week-15-stratification-mobility.mdx";
-import Migration from "./notes/week-16-migration.mdx";
-import SocialConflict from "./notes/week-17-social-conflict.mdx";
 import type { ArticleConfig } from "./types";
+
+const HumanSociety = lazy(() => import("./notes/week-01-human-society.mdx"));
+const Consciousness = lazy(() => import("./notes/week-02-social-norms.mdx"));
+const SocietySystem = lazy(() => import("./notes/week-03-society-as-system.mdx"));
+const SocietyConcept = lazy(() => import("./notes/week-04-society-concept.mdx"));
+const TypesOfSociety = lazy(() => import("./notes/week-05-types-of-society.mdx"));
+const Evolution = lazy(() => import("./notes/week-06-evolution.mdx"));
+const CultureSpiritualLife = lazy(() => import("./notes/week-07-culture-spiritual-life.mdx"));
+const ScienceEducation = lazy(() => import("./notes/week-08-science-education.mdx"));
+const WorldReligions = lazy(() => import("./notes/week-09-world-religions.mdx"));
+const BankingCreditMortgage = lazy(() => import("./notes/week-11-12-banking-credit-mortgage.mdx"));
+const TaxesRussia = lazy(() => import("./notes/week-13-taxes-russia.mdx"));
+const FamilyMarriage = lazy(() => import("./notes/week-14-family-marriage.mdx"));
+const StratificationMobility = lazy(() => import("./notes/week-15-stratification-mobility.mdx"));
+const Migration = lazy(() => import("./notes/week-16-migration.mdx"));
+const SocialConflict = lazy(() => import("./notes/week-17-social-conflict.mdx"));
 
 const botThinkingImage = publicAsset("assets/placeholders/bot-placeholder.png");
 
@@ -35,7 +37,6 @@ export const articles: ArticleConfig[] = [
     botThinkingImage,
     mdx: HumanSociety,
     readingTime: "8 минут",
-    status: "ready",
   },
   {
     id: "week-02-consciousness",
@@ -53,7 +54,6 @@ export const articles: ArticleConfig[] = [
     botThinkingImage,
     mdx: Consciousness,
     readingTime: "7 минут",
-    status: "ready",
   },
   {
     id: "week-03-society-system",
@@ -71,7 +71,6 @@ export const articles: ArticleConfig[] = [
     botThinkingImage,
     mdx: SocietySystem,
     readingTime: "9 минут",
-    status: "ready",
   },
   {
     id: "week-04-society-concept",
@@ -89,7 +88,6 @@ export const articles: ArticleConfig[] = [
     botThinkingImage,
     mdx: SocietyConcept,
     readingTime: "9 минут",
-    status: "ready",
   },
   {
     id: "week-05-types-of-society",
@@ -107,7 +105,6 @@ export const articles: ArticleConfig[] = [
     botThinkingImage,
     mdx: TypesOfSociety,
     readingTime: "10 минут",
-    status: "ready",
   },
   {
     id: "week-06-evolution",
@@ -125,7 +122,6 @@ export const articles: ArticleConfig[] = [
     botThinkingImage,
     mdx: Evolution,
     readingTime: "9 минут",
-    status: "ready",
   },
   {
     id: "week-07-culture-spiritual-life",
@@ -143,7 +139,6 @@ export const articles: ArticleConfig[] = [
     botThinkingImage,
     mdx: CultureSpiritualLife,
     readingTime: "12 минут",
-    status: "ready",
   },
   {
     id: "week-08-science-education",
@@ -161,7 +156,6 @@ export const articles: ArticleConfig[] = [
     botThinkingImage,
     mdx: ScienceEducation,
     readingTime: "12 минут",
-    status: "ready",
   },
   {
     id: "week-09-world-religions",
@@ -179,7 +173,6 @@ export const articles: ArticleConfig[] = [
     botThinkingImage,
     mdx: WorldReligions,
     readingTime: "10 минут",
-    status: "ready",
   },
   {
     id: "week-11-12-banking-credit-mortgage",
@@ -197,7 +190,6 @@ export const articles: ArticleConfig[] = [
     botThinkingImage,
     mdx: BankingCreditMortgage,
     readingTime: "14 минут",
-    status: "ready",
   },
   {
     id: "week-13-taxes-russia",
@@ -215,7 +207,6 @@ export const articles: ArticleConfig[] = [
     botThinkingImage,
     mdx: TaxesRussia,
     readingTime: "13 минут",
-    status: "ready",
   },
   {
     id: "week-14-family-marriage",
@@ -233,7 +224,6 @@ export const articles: ArticleConfig[] = [
     botThinkingImage,
     mdx: FamilyMarriage,
     readingTime: "11 минут",
-    status: "ready",
   },
   {
     id: "week-15-stratification-mobility",
@@ -251,7 +241,6 @@ export const articles: ArticleConfig[] = [
     botThinkingImage,
     mdx: StratificationMobility,
     readingTime: "12 минут",
-    status: "ready",
   },
   {
     id: "week-16-migration",
@@ -269,7 +258,6 @@ export const articles: ArticleConfig[] = [
     botThinkingImage,
     mdx: Migration,
     readingTime: "12 минут",
-    status: "ready",
   },
   {
     id: "week-17-social-conflict",
@@ -287,6 +275,5 @@ export const articles: ArticleConfig[] = [
     botThinkingImage,
     mdx: SocialConflict,
     readingTime: "11 минут",
-    status: "ready",
   },
 ];

@@ -4,6 +4,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent as ReactPointerEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -49,7 +50,6 @@ type NeuroFlowProps = {
   articles: ArticleConfig[];
 };
 
-const ACTIVATED_KEY = "neuroarchive:activated";
 const BOT_IMAGE = publicAsset("assets/placeholders/bot-placeholder.png");
 const INTRO_DELAY = 1550;
 const SHELL_MORPH_MS = 960;
@@ -74,10 +74,6 @@ const RESET_MESSAGES = [
   "Соберём маршрут заново?",
 ];
 
-function rememberActivated() {
-  window.sessionStorage.setItem(ACTIVATED_KEY, "true");
-}
-
 function getViewport(): Viewport {
   return {
     width: window.innerWidth,
@@ -89,12 +85,38 @@ function useViewport() {
   const [viewport, setViewport] = useState(() => getViewport());
 
   useEffect(() => {
-    const sync = () => setViewport(getViewport());
+    let raf = 0;
+    const sync = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(() => {
+        raf = 0;
+        setViewport(getViewport());
+      });
+    };
     window.addEventListener("resize", sync);
-    return () => window.removeEventListener("resize", sync);
+    return () => {
+      window.removeEventListener("resize", sync);
+      window.cancelAnimationFrame(raf);
+    };
   }, []);
 
   return viewport;
+}
+
+function useCoarsePointer() {
+  const [isCoarse, setIsCoarse] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(hover: none), (pointer: coarse)").matches;
+  });
+
+  useEffect(() => {
+    const media = window.matchMedia("(hover: none), (pointer: coarse)");
+    const sync = () => setIsCoarse(media.matches);
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  return isCoarse;
 }
 
 function getInset(width: number) {
@@ -286,12 +308,14 @@ function SkeletonThought() {
 
 export function NeuroFlow({ articles }: NeuroFlowProps) {
   const viewport = useViewport();
+  const isCoarsePointer = useCoarsePointer();
   const navigate = useNavigate();
   const location = useLocation();
   const shouldReduceMotion = useReducedMotion();
   const timers = useRef<number[]>([]);
   const assistantCloseTimer = useRef<number | null>(null);
   const pendingRouteTransition = useRef<"article" | "archive" | null>(null);
+  const resizeCleanup = useRef<(() => void) | null>(null);
   const [phase, setPhase] = useState<FlowPhase>(() =>
     getInitialPhase(location.pathname),
   );
@@ -375,20 +399,20 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     assistantCloseTimer.current = null;
   };
 
-  const showAssistantPanel = () => {
+  const showAssistantPanel = useCallback(() => {
     if (phase !== "archive") return;
     clearAssistantCloseTimer();
     setAssistantPanelActive(true);
-  };
+  }, [phase]);
 
-  const hideAssistantPanel = () => {
+  const hideAssistantPanel = useCallback(() => {
     if (phase !== "archive" || isResetTip) return;
     clearAssistantCloseTimer();
     assistantCloseTimer.current = window.setTimeout(() => {
       setAssistantPanelActive(false);
       assistantCloseTimer.current = null;
     }, 70);
-  };
+  }, [isResetTip, phase]);
 
   const schedule = (callback: () => void, delay: number) => {
     const timer = window.setTimeout(callback, delay);
@@ -399,6 +423,8 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     () => () => {
       clearTimers();
       clearAssistantCloseTimer();
+      resizeCleanup.current?.();
+      resizeCleanup.current = null;
     },
     [],
   );
@@ -532,27 +558,27 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     return clearTimers;
   }, [navigate, phase, selectedArticle.id, shouldReduceMotion]);
 
-  const activateArchive = () => {
+  const activateArchive = useCallback(() => {
     if (phase !== "intro" || !introBotArrived) return;
-    rememberActivated();
     setPhase("movingToArchive");
-  };
+  }, [introBotArrived, phase]);
 
-  const openArticle = (article: ArticleConfig) => {
-    if (phase !== "archive") return;
-    rememberActivated();
-    setSelectedArticleId(article.id);
-    setAssistantPanelActive(false);
-    setPhase("preparingArticle");
-  };
+  const openArticle = useCallback(
+    (article: ArticleConfig) => {
+      if (phase !== "archive") return;
+      setSelectedArticleId(article.id);
+      setAssistantPanelActive(false);
+      setPhase("preparingArticle");
+    },
+    [phase],
+  );
 
-  const backToArchive = () => {
-    rememberActivated();
+  const backToArchive = useCallback(() => {
     setAssistantPanelActive(false);
     setPhase("preparingArchive");
-  };
+  }, []);
 
-  const handleBotClick = () => {
+  const handleBotClick = useCallback(() => {
     if (phase === "intro") {
       activateArchive();
       return;
@@ -575,94 +601,111 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     if (isReadableArticlePhase(phase)) {
       backToArchive();
     }
-  };
+  }, [activateArchive, backToArchive, phase]);
 
-  const handleRailClick = (event: MouseEvent<HTMLElement>) => {
-    if (phase !== "archive") return;
-    if ((event.target as HTMLElement).closest("button")) return;
-    handleBotClick();
-  };
+  const handleRailClick = useCallback(
+    (event: MouseEvent<HTMLElement>) => {
+      if (phase !== "archive") return;
+      if ((event.target as HTMLElement).closest("button")) return;
+      handleBotClick();
+    },
+    [handleBotClick, phase],
+  );
 
-  const handleRailKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    if (phase !== "archive") return;
-    if (event.key !== "Enter" && event.key !== " ") return;
-    event.preventDefault();
-    handleBotClick();
-  };
+  const handleRailKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLElement>) => {
+      if (phase !== "archive") return;
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      handleBotClick();
+    },
+    [handleBotClick, phase],
+  );
 
-  const resizeArticleBy = (delta: number) => {
-    setArticleWidth((width) => clampArticleWidth(width + delta, viewport));
-  };
+  const resizeArticleBy = useCallback(
+    (delta: number) => {
+      setArticleWidth((width) => clampArticleWidth(width + delta, viewport));
+    },
+    [viewport],
+  );
 
-  const handleArticleResizeKeyDown = (
-    event: KeyboardEvent<HTMLButtonElement>,
-    side: "left" | "right",
-  ) => {
-    const step = event.shiftKey ? 96 : 32;
+  const handleArticleResizeKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLButtonElement>, side: "left" | "right") => {
+      const step = event.shiftKey ? 96 : 32;
 
-    if (side === "left") {
-      if (event.key === "ArrowLeft") {
+      if (side === "left") {
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          resizeArticleBy(step);
+        }
+        if (event.key === "ArrowRight") {
+          event.preventDefault();
+          resizeArticleBy(-step);
+        }
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
         event.preventDefault();
         resizeArticleBy(step);
       }
-      if (event.key === "ArrowRight") {
+      if (event.key === "ArrowLeft") {
         event.preventDefault();
         resizeArticleBy(-step);
       }
-      return;
-    }
+    },
+    [resizeArticleBy],
+  );
 
-    if (event.key === "ArrowRight") {
+  const startArticleResize = useCallback(
+    (
+      event: ReactPointerEvent<HTMLButtonElement>,
+      side: "left" | "right",
+    ) => {
+      if (!articleCanResize) return;
+
       event.preventDefault();
-      resizeArticleBy(step);
-    }
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      resizeArticleBy(-step);
-    }
-  };
+      event.stopPropagation();
 
-  const startArticleResize = (
-    event: ReactPointerEvent<HTMLButtonElement>,
-    side: "left" | "right",
-  ) => {
-    if (!articleCanResize) return;
+      resizeCleanup.current?.();
 
-    event.preventDefault();
-    event.stopPropagation();
+      const startX = event.clientX;
+      const startWidth = shellRect.width;
+      const direction = side === "left" ? -1 : 1;
+      const previousCursor = document.body.style.cursor;
+      const previousUserSelect = document.body.style.userSelect;
 
-    const startX = event.clientX;
-    const startWidth = shellRect.width;
-    const direction = side === "left" ? -1 : 1;
-    const previousCursor = document.body.style.cursor;
-    const previousUserSelect = document.body.style.userSelect;
+      document.body.style.cursor = "ew-resize";
+      document.body.style.userSelect = "none";
 
-    document.body.style.cursor = "ew-resize";
-    document.body.style.userSelect = "none";
+      const handleMove = (moveEvent: PointerEvent) => {
+        const delta = (moveEvent.clientX - startX) * direction * 2;
+        setArticleWidth(clampArticleWidth(startWidth + delta, viewport));
+      };
 
-    const handleMove = (moveEvent: PointerEvent) => {
-      const delta = (moveEvent.clientX - startX) * direction * 2;
-      setArticleWidth(clampArticleWidth(startWidth + delta, viewport));
-    };
+      const stopResize = () => {
+        window.removeEventListener("pointermove", handleMove);
+        window.removeEventListener("pointerup", stopResize);
+        window.removeEventListener("pointercancel", stopResize);
+        document.body.style.cursor = previousCursor;
+        document.body.style.userSelect = previousUserSelect;
+        resizeCleanup.current = null;
+      };
 
-    const stopResize = () => {
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("pointercancel", stopResize);
-      document.body.style.cursor = previousCursor;
-      document.body.style.userSelect = previousUserSelect;
-    };
+      resizeCleanup.current = stopResize;
+      window.addEventListener("pointermove", handleMove);
+      window.addEventListener("pointerup", stopResize, { once: true });
+      window.addEventListener("pointercancel", stopResize, { once: true });
+    },
+    [articleCanResize, shellRect.width, viewport],
+  );
 
-    window.addEventListener("pointermove", handleMove);
-    window.addEventListener("pointerup", stopResize, { once: true });
-    window.addEventListener("pointercancel", stopResize, { once: true });
-  };
-
-  const restartFlow = () => {
+  const restartFlow = useCallback(() => {
     clearTimers();
     clearAssistantCloseTimer();
     setAssistantPanelActive(false);
     setPhase("resettingToIntro");
-  };
+  }, []);
 
   const streamingPhase: Exclude<GenerationPhase, "thinking"> =
     phase === "streaming" ? "streaming" : "ready";
@@ -767,6 +810,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
                           article={article}
                           index={index}
                           isLeaving={archiveIsLeaving}
+                          isCoarsePointer={isCoarsePointer}
                           onOpen={openArticle}
                         />
                       ))}

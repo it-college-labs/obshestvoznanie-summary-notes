@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { AlertTriangle, BookOpen, Brain, Lightbulb } from "lucide-react";
 
 type WithChildren = {
@@ -119,18 +119,12 @@ function CompareTable({ caption, columns, rows }: CompareTableProps) {
   );
 }
 
-function Anchor(props: ComponentPropsWithoutRef<"a">) {
-  return <a {...props} target="_blank" rel="noreferrer" />;
-}
-
 export const mdxComponents = {
   Text,
-  PlainText: Text,
   Definition,
   Callout,
   Example,
   CompareTable,
   KeyIdea,
   ExamTrap,
-  a: Anchor,
 };

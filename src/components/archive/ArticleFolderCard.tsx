@@ -1,12 +1,13 @@
 import { motion, useReducedMotion } from "motion/react";
 import type { CSSProperties } from "react";
-import { useEffect, useState } from "react";
+import { memo, useState } from "react";
 import type { ArticleConfig } from "../../content/types";
 
 type ArticleFolderCardProps = {
   article: ArticleConfig;
   index: number;
   isLeaving?: boolean;
+  isCoarsePointer: boolean;
   onOpen: (article: ArticleConfig) => void;
 };
 
@@ -19,29 +20,15 @@ const folderPalette = [
   ["#a12650", "#cf4a73", "#f3a1b8"],
 ];
 
-function useCoarsePointer() {
-  const [isCoarse, setIsCoarse] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia("(hover: none), (pointer: coarse)");
-    const sync = () => setIsCoarse(media.matches);
-    sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
-
-  return isCoarse;
-}
-
-export function ArticleFolderCard({
+function ArticleFolderCardComponent({
   article,
   index,
   isLeaving = false,
+  isCoarsePointer,
   onOpen,
 }: ArticleFolderCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const shouldReduceMotion = useReducedMotion();
-  const isCoarsePointer = useCoarsePointer();
   const folderAccent = folderPalette[index % folderPalette.length];
 
   const accentStyle = {
@@ -152,3 +139,5 @@ export function ArticleFolderCard({
     </motion.button>
   );
 }
+
+export const ArticleFolderCard = memo(ArticleFolderCardComponent);
