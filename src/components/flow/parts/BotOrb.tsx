@@ -1,6 +1,7 @@
 import { LivingOrbButton } from "../../orb/LivingOrb";
 import type { ArticleListItem } from "../../../api/types";
 import type { FlowPhase, Rect } from "../../../flow/layout";
+import { publicAsset } from "../../../content/assets";
 
 const BOT_IMAGE = "/assets/placeholders/bot-placeholder.png";
 
@@ -44,7 +45,7 @@ export function BotOrb({
       className={`flow-bot ${phase === "archive" ? "flow-bot--archive" : ""} ${
         isResetTip ? "flow-bot--reset-tip" : ""
       }`}
-      image={selectedArticle?.botThinkingImage ?? BOT_IMAGE}
+      image={publicAsset(selectedArticle?.botThinkingImage ?? BOT_IMAGE)}
       active={botIsActive}
       ariaLabel="Управлять нейроархивом"
       onClick={onClick}

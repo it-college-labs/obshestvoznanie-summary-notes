@@ -7,7 +7,7 @@ import "./styles/animations.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename="/obshestvoznanie-summary-notes">
       <App />
     </BrowserRouter>
   </StrictMode>,

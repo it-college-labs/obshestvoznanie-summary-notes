@@ -14,9 +14,16 @@ export function publicAsset(path: string) {
       return path;
     }
   }
+  const base = import.meta.env.BASE_URL;
   if (path.startsWith("/")) {
+    if (base && base !== "/" && !path.startsWith(base)) {
+      return base.replace(/\/$/, "") + path;
+    }
     return path;
   }
   const cleanPath = path.replace(/^\/+/, "");
+  if (base && base !== "/") {
+    return base.replace(/\/$/, "") + "/" + cleanPath;
+  }
   return `/${cleanPath}`;
 }

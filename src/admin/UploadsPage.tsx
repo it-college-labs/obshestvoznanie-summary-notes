@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { uploadFile, listUploads } from "../api/admin";
 import type { Upload } from "../api/types";
+import { publicAsset } from "../content/assets";
 
 export function UploadsPage() {
   const navigate = useNavigate();
@@ -93,7 +94,7 @@ export function UploadsPage() {
         <div className="admin-uploads-grid">
           {uploads.map((up) => (
             <div key={up.id} className="admin-upload-card">
-              <img src={up.url} alt={up.filename} loading="lazy" />
+              <img src={publicAsset(up.url)} alt={up.filename} loading="lazy" />
               <div className="admin-upload-card__info">
                 <span className="admin-upload-card__name">{up.filename}</span>
                 <button type="button" className="admin-button-outline" onClick={() => copyUrl(up)}>

@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: "/",
+  base: "/obshestvoznanie-summary-notes/",
   plugins: [
     mdx({
       providerImportSource: "@mdx-js/react",

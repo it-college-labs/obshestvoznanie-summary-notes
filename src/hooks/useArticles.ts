@@ -12,7 +12,7 @@ export function useArticles() {
     setLoading(true);
     listArticles()
       .then((items) => {
-        if (!cancelled) setArticles(items);
+        if (!cancelled) setArticles(items ?? []);
       })
       .catch((err) => {
         if (!cancelled) setError(err);
@@ -38,8 +38,8 @@ export function useRefreshArticles() {
     setError(null);
     try {
       const items = await listArticles();
-      setArticles(items);
-      return items;
+      setArticles(items ?? []);
+      return items ?? [];
     } catch (err) {
       setError(err as Error);
       throw err;
