@@ -1,6 +1,5 @@
 import { ArrowLeft } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { type PointerEvent, type KeyboardEvent } from "react";
 import { StreamingArticle } from "../../article/StreamingArticle";
 import type { ArticleListItem } from "../../../api/types";
 import type { FlowPhase } from "../../../flow/layout";
@@ -9,10 +8,7 @@ type ArticleViewProps = {
   article?: ArticleListItem;
   phase: FlowPhase;
   articleIsLeaving: boolean;
-  resizeHandlersReady: boolean;
   onBackToArchive: () => void;
-  onResizePointerDown: (event: PointerEvent<HTMLButtonElement>, side: "left" | "right") => void;
-  onResizeKeyDown: (event: KeyboardEvent<HTMLButtonElement>, side: "left" | "right") => void;
 };
 
 function SkeletonThought() {
@@ -37,10 +33,7 @@ export function ArticleView({
   article,
   phase,
   articleIsLeaving,
-  resizeHandlersReady,
   onBackToArchive,
-  onResizePointerDown,
-  onResizeKeyDown,
 }: ArticleViewProps) {
   const streamingPhase: Exclude<"thinking" | "streaming" | "ready", "thinking"> =
     phase === "streaming" ? "streaming" : "ready";
@@ -106,25 +99,6 @@ export function ArticleView({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {resizeHandlersReady && (
-        <>
-          <button
-            type="button"
-            className="article-resize-handle article-resize-handle--left"
-            aria-label="Изменить ширину статьи слева"
-            onPointerDown={(event) => onResizePointerDown(event, "left")}
-            onKeyDown={(event) => onResizeKeyDown(event, "left")}
-          />
-          <button
-            type="button"
-            className="article-resize-handle article-resize-handle--right"
-            aria-label="Изменить ширину статьи справа"
-            onPointerDown={(event) => onResizePointerDown(event, "right")}
-            onKeyDown={(event) => onResizeKeyDown(event, "right")}
-          />
-        </>
-      )}
     </motion.div>
   );
 }

@@ -434,13 +434,29 @@ export function NeuroFlow() {
               article={selectedArticle}
               phase={phase}
               articleIsLeaving={articleIsLeaving}
-              resizeHandlersReady={resizeHandlersReady}
               onBackToArchive={backToArchive}
-              onResizePointerDown={startResize}
-              onResizeKeyDown={handleResizeKeyDown}
             />
           )}
         </AnimatePresence>
+
+        {resizeHandlersReady && (
+          <>
+            <button
+              type="button"
+              className="article-resize-handle article-resize-handle--left"
+              aria-label="Изменить ширину статьи слева"
+              onPointerDown={(event) => startResize(event, "left")}
+              onKeyDown={(event) => handleResizeKeyDown(event, "left")}
+            />
+            <button
+              type="button"
+              className="article-resize-handle article-resize-handle--right"
+              aria-label="Изменить ширину статьи справа"
+              onPointerDown={(event) => startResize(event, "right")}
+              onKeyDown={(event) => handleResizeKeyDown(event, "right")}
+            />
+          </>
+        )}
       </motion.div>
 
       <BotOrb

@@ -27,7 +27,7 @@ export type FlowPhase =
   | "streaming"
   | "ready";
 
-const ARTICLE_DEFAULT_WIDTH = 1160;
+const ARTICLE_DEFAULT_WIDTH = 1040;
 const ARTICLE_MIN_WIDTH = 760;
 
 export function getInset(width: number) {
