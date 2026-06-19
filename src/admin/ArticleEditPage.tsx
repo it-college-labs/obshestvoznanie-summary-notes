@@ -29,7 +29,7 @@ const emptyArticle: ArticleAdmin = {
   tags: [],
   accent: ["#ac2954", "#d84c78", "#a78bfa"],
   folderPreviewImages: ["", "", ""],
-  botThinkingImage: "/assets/placeholders/bot-placeholder.png",
+  botThinkingImage: "/assets/placeholders/bot-placeholder.webp",
   readingTime: "",
   status: "draft",
   content: emptyContent,

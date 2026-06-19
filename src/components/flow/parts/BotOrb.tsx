@@ -3,7 +3,7 @@ import type { ArticleListItem } from "../../../api/types";
 import type { FlowPhase, Rect } from "../../../flow/layout";
 import { publicAsset } from "../../../content/assets";
 
-const BOT_IMAGE = "/assets/placeholders/bot-placeholder.png";
+const BOT_IMAGE = "/assets/placeholders/bot-placeholder.webp";
 
 type BotOrbProps = {
   phase: FlowPhase;

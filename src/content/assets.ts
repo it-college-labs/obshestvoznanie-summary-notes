@@ -1,27 +1,31 @@
 export function publicAsset(path: string) {
   if (!path) return "";
+  const normalizedPath =
+    path === "/assets/placeholders/bot-placeholder.png"
+      ? "/assets/placeholders/bot-placeholder.webp"
+      : path;
   if (/^(data:|blob:)/i.test(path)) {
     return path;
   }
-  if (/^https?:/i.test(path)) {
+  if (/^https?:/i.test(normalizedPath)) {
     try {
-      const url = new URL(path);
+      const url = new URL(normalizedPath);
       if (url.origin === window.location.origin) {
         return url.pathname + url.search + url.hash;
       }
-      return path;
+      return normalizedPath;
     } catch {
-      return path;
+      return normalizedPath;
     }
   }
   const base = import.meta.env.BASE_URL;
-  if (path.startsWith("/")) {
-    if (base && base !== "/" && !path.startsWith(base)) {
-      return base.replace(/\/$/, "") + path;
+  if (normalizedPath.startsWith("/")) {
+    if (base && base !== "/" && !normalizedPath.startsWith(base)) {
+      return base.replace(/\/$/, "") + normalizedPath;
     }
-    return path;
+    return normalizedPath;
   }
-  const cleanPath = path.replace(/^\/+/, "");
+  const cleanPath = normalizedPath.replace(/^\/+/, "");
   if (base && base !== "/") {
     return base.replace(/\/$/, "") + "/" + cleanPath;
   }

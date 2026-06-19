@@ -262,12 +262,19 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  max-width: min(calc(100% - 24px), calc(100vw - 32px));
+  overflow-x: auto;
+  scrollbar-width: none;
   padding: 6px;
   border-radius: 14px;
   background: var(--admin-ink);
   color: #ffffff;
   box-shadow: 0 12px 28px rgba(23, 32, 51, 0.22);
   transform: translate(-50%, calc(-100% - 10px));
+}
+
+.editor-bubble-toolbar::-webkit-scrollbar {
+  display: none;
 }
 
 .editor-bubble-toolbar button {
@@ -341,7 +348,6 @@
 
 .inline-insert__menu {
   position: absolute;
-  top: 42px;
   left: 50%;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -354,6 +360,15 @@
   box-shadow: 0 14px 34px rgba(31, 41, 55, 0.12);
   transform: translateX(-50%);
   pointer-events: auto;
+}
+
+.inline-insert__menu--below {
+  top: 42px;
+}
+
+.inline-insert__menu--above {
+  bottom: 42px;
+  box-shadow: 0 -14px 34px rgba(31, 41, 55, 0.1);
 }
 
 .inline-insert__menu button {

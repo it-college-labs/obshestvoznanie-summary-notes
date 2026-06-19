@@ -1,6 +1,6 @@
 import type { Editor } from "@tiptap/react";
 import { Bold, Heading1, Heading2, Heading3, Italic, Link, List, ListOrdered, Quote } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 type ToolbarProps = {
   editor: Editor;
@@ -9,10 +9,13 @@ type ToolbarProps = {
 type ToolbarAnchor = {
   left: number;
   top: number;
+  canvasWidth: number;
 };
 
 export function Toolbar({ editor }: ToolbarProps) {
   const [anchor, setAnchor] = useState<ToolbarAnchor | null>(null);
+  const [toolbarWidth, setToolbarWidth] = useState(0);
+  const toolbarRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const updateAnchor = () => {
@@ -38,8 +41,9 @@ export function Toolbar({ editor }: ToolbarProps) {
         const top = Math.min(start.top, end.top) - canvasRect.top;
 
         setAnchor({
-          left: Math.max(18, Math.min(left, canvasRect.width - 18)),
+          left: Math.max(12, Math.min(left, canvasRect.width - 12)),
           top: Math.max(12, top),
+          canvasWidth: canvasRect.width,
         });
       } catch (_err) {
         setAnchor(null);
@@ -58,14 +62,46 @@ export function Toolbar({ editor }: ToolbarProps) {
     };
   }, [editor]);
 
+  const resolvedLeft = useMemo(() => {
+    if (!anchor) return 0;
+    if (!toolbarWidth) return anchor.left;
+
+    const edgeGap = 12;
+    const halfWidth = toolbarWidth / 2;
+    const minLeft = halfWidth + edgeGap;
+    const maxLeft = anchor.canvasWidth - halfWidth - edgeGap;
+
+    if (maxLeft < minLeft) {
+      return anchor.canvasWidth / 2;
+    }
+
+    return Math.max(minLeft, Math.min(anchor.left, maxLeft));
+  }, [anchor, toolbarWidth]);
+
+  useLayoutEffect(() => {
+    if (!anchor || !toolbarRef.current) return;
+
+    const updateWidth = () => {
+      if (!toolbarRef.current) return;
+      setToolbarWidth(toolbarRef.current.offsetWidth);
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(toolbarRef.current);
+
+    return () => observer.disconnect();
+  }, [anchor]);
+
   if (!anchor) return null;
 
   const isActive = (name: string, attrs?: Record<string, unknown>) => editor.isActive(name, attrs);
 
   return (
     <div
+      ref={toolbarRef}
       className="editor-bubble-toolbar"
-      style={{ left: anchor.left, top: anchor.top }}
+      style={{ left: resolvedLeft, top: anchor.top }}
       onMouseDown={(event) => event.preventDefault()}
     >
       <button

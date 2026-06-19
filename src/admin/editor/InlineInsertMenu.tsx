@@ -11,7 +11,15 @@ import {
   Sparkles,
   Table,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type ComponentType } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+} from "react";
 
 type InsertOption = {
   id: string;
@@ -28,6 +36,8 @@ type InsertAnchor = {
 type InlineInsertMenuProps = {
   editor: Editor;
 };
+
+const MENU_GAP = 12;
 
 function promptValue(label: string, fallback: string) {
   const value = window.prompt(label, fallback);
@@ -60,6 +70,8 @@ function getTopLevelBlocks(editor: Editor) {
 export function InlineInsertMenu({ editor }: InlineInsertMenuProps) {
   const [anchor, setAnchor] = useState<InsertAnchor | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPlacement, setMenuPlacement] = useState<"below" | "above">("below");
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   const options = useMemo<InsertOption[]>(
     () => [
@@ -146,9 +158,39 @@ export function InlineInsertMenu({ editor }: InlineInsertMenuProps) {
     [],
   );
 
-  useEffect(() => {
+  const getCanvas = useCallback(() => {
     const canvas = editor.view.dom.closest(".tiptap-editor__canvas");
-    if (!(canvas instanceof HTMLElement)) return;
+    return canvas instanceof HTMLElement ? canvas : null;
+  }, [editor]);
+
+  const chooseMenuPlacement = useCallback(
+    (nextAnchor: InsertAnchor, measuredHeight?: number) => {
+      const canvas = getCanvas();
+      if (!canvas) return "below";
+
+      const canvasRect = canvas.getBoundingClientRect();
+      const paneRect = canvas.closest(".admin-editor-pane")?.getBoundingClientRect();
+      const anchorY = canvasRect.top + nextAnchor.top;
+      const clippingBottom = Math.min(window.innerHeight, paneRect?.bottom ?? window.innerHeight);
+      const clippingTop = Math.max(0, paneRect?.top ?? 0);
+      const menuHeight =
+        measuredHeight ??
+        (window.matchMedia("(max-width: 560px)").matches
+          ? 430
+          : window.matchMedia("(max-width: 820px)").matches
+            ? 250
+            : 164);
+      const spaceBelow = clippingBottom - anchorY - MENU_GAP;
+      const spaceAbove = anchorY - clippingTop - MENU_GAP;
+
+      return spaceBelow < menuHeight && spaceAbove > spaceBelow ? "above" : "below";
+    },
+    [getCanvas],
+  );
+
+  useEffect(() => {
+    const canvas = getCanvas();
+    if (!canvas) return;
 
     const updateAnchor = (event: MouseEvent) => {
       if (menuOpen) return;
@@ -213,7 +255,14 @@ export function InlineInsertMenu({ editor }: InlineInsertMenuProps) {
       canvas.removeEventListener("mousemove", updateAnchor);
       canvas.removeEventListener("mouseleave", clearAnchor);
     };
-  }, [editor, menuOpen]);
+  }, [editor, getCanvas, menuOpen]);
+
+  useLayoutEffect(() => {
+    if (!menuOpen || !anchor || !menuRef.current) return;
+
+    const nextPlacement = chooseMenuPlacement(anchor, menuRef.current.offsetHeight);
+    setMenuPlacement((current) => (current === nextPlacement ? current : nextPlacement));
+  }, [anchor, chooseMenuPlacement, menuOpen]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -240,14 +289,25 @@ export function InlineInsertMenu({ editor }: InlineInsertMenuProps) {
         aria-label="Добавить блок"
         title="Добавить блок"
         onMouseDown={(event) => event.preventDefault()}
-        onClick={() => setMenuOpen((open) => !open)}
+        onClick={() => {
+          setMenuOpen((open) => {
+            const nextOpen = !open;
+            if (nextOpen) {
+              setMenuPlacement(chooseMenuPlacement(anchor));
+            }
+            return nextOpen;
+          });
+        }}
       >
         <Plus size={16} />
       </button>
       <span className="inline-insert__line" aria-hidden="true" />
 
       {menuOpen && (
-        <div className="inline-insert__menu">
+        <div
+          ref={menuRef}
+          className={`inline-insert__menu inline-insert__menu--${menuPlacement}`}
+        >
           {options.map((option) => {
             const Icon = option.icon;
             return (

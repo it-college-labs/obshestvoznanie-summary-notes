@@ -7,7 +7,7 @@
     "tags": ["личность", "индивид", "деятельность"],
     "accent": ["#6ee7f9", "#a78bfa", "#fb7185"],
     "folderPreviewImages": ["/assets/placeholders/preview-human-01.svg", "/assets/placeholders/preview-human-02.svg", "/assets/placeholders/preview-human-03.svg"],
-    "botThinkingImage": "/assets/placeholders/bot-placeholder.png",
+    "botThinkingImage": "/assets/placeholders/bot-placeholder.webp",
     "readingTime": "8 минут"
   },
   {
@@ -19,7 +19,7 @@
     "tags": ["сознание", "мышление", "мировоззрение"],
     "accent": ["#fde047", "#34d399", "#60a5fa"],
     "folderPreviewImages": ["/assets/placeholders/preview-norms-01.svg", "/assets/placeholders/preview-norms-02.svg", "/assets/placeholders/preview-norms-03.svg"],
-    "botThinkingImage": "/assets/placeholders/bot-placeholder.png",
+    "botThinkingImage": "/assets/placeholders/bot-placeholder.webp",
     "readingTime": "7 минут"
   },
   {
@@ -31,7 +31,7 @@
     "tags": ["система", "институты", "группы"],
     "accent": ["#c084fc", "#f472b6", "#38bdf8"],
     "folderPreviewImages": ["/assets/placeholders/preview-norms-01.svg", "/assets/placeholders/preview-norms-02.svg", "/assets/placeholders/preview-norms-03.svg"],
-    "botThinkingImage": "/assets/placeholders/bot-placeholder.png",
+    "botThinkingImage": "/assets/placeholders/bot-placeholder.webp",
     "readingTime": "9 минут"
   },
   {
@@ -42,7 +42,7 @@
     "tags": ["общество", "институты", "группы", "идентичность"],
     "accent": ["#86efac", "#fbbf24", "#f97316"],
     "folderPreviewImages": ["/assets/placeholders/preview-norms-01.svg", "/assets/placeholders/preview-norms-02.svg", "/assets/placeholders/preview-norms-03.svg"],
-    "botThinkingImage": "/assets/placeholders/bot-placeholder.png",
+    "botThinkingImage": "/assets/placeholders/bot-placeholder.webp",
     "readingTime": "9 минут"
   },
   {
@@ -53,7 +53,7 @@
     "tags": ["типы обществ", "коммуникации", "массовое сознание"],
     "accent": ["#a78bfa", "#67e8f9", "#fda4af"],
     "folderPreviewImages": ["/assets/placeholders/preview-norms-01.svg", "/assets/placeholders/preview-norms-02.svg", "/assets/placeholders/preview-norms-03.svg"],
-    "botThinkingImage": "/assets/placeholders/bot-placeholder.png",
+    "botThinkingImage": "/assets/placeholders/bot-placeholder.webp",
     "readingTime": "10 минут"
   },
   {
@@ -64,7 +64,7 @@
     "tags": ["эволюция", "революция", "реформа", "прогресс"],
     "accent": ["#fb923c", "#a3e635", "#38bdf8"],
     "folderPreviewImages": ["/assets/placeholders/preview-norms-01.svg", "/assets/placeholders/preview-norms-02.svg", "/assets/placeholders/preview-norms-03.svg"],
-    "botThinkingImage": "/assets/placeholders/bot-placeholder.png",
+    "botThinkingImage": "/assets/placeholders/bot-placeholder.webp",
     "readingTime": "9 минут"
   },
   {
@@ -75,7 +75,7 @@
     "tags": ["культура", "духовная сфера", "субкультура"],
     "accent": ["#ac2954", "#d84c78", "#a78bfa"],
     "folderPreviewImages": ["/assets/placeholders/preview-norms-01.svg", "/assets/placeholders/preview-norms-02.svg", "/assets/placeholders/preview-norms-03.svg"],
-    "botThinkingImage": "/assets/placeholders/bot-placeholder.png",
+    "botThinkingImage": "/assets/placeholders/bot-placeholder.webp",
     "readingTime": "12 минут"
   },
   {
@@ -86,7 +86,7 @@
     "tags": ["наука", "образование", "познание"],
     "accent": ["#ac2954", "#f472b6", "#60a5fa"],
     "folderPreviewImages": ["/assets/placeholders/preview-norms-01.svg", "/assets/placeholders/preview-norms-02.svg", "/assets/placeholders/preview-norms-03.svg"],
-    "botThinkingImage": "/assets/placeholders/bot-placeholder.png",
+    "botThinkingImage": "/assets/placeholders/bot-placeholder.webp",
     "readingTime": "12 минут"
   },
   {
@@ -97,7 +97,7 @@
     "tags": ["религия", "мировые религии", "духовная культура"],
     "accent": ["#ac2954", "#a78bfa", "#f59e0b"],
     "folderPreviewImages": ["/assets/placeholders/preview-norms-01.svg", "/assets/placeholders/preview-norms-02.svg", "/assets/placeholders/preview-norms-03.svg"],
-    "botThinkingImage": "/assets/placeholders/bot-placeholder.png",
+    "botThinkingImage": "/assets/placeholders/bot-placeholder.webp",
     "readingTime": "10 минут"
   },
   {
@@ -108,7 +108,7 @@
     "tags": ["банки", "кредиты", "ипотека"],
     "accent": ["#ac2954", "#38bdf8", "#fbbf24"],
     "folderPreviewImages": ["/assets/placeholders/preview-norms-01.svg", "/assets/placeholders/preview-norms-02.svg", "/assets/placeholders/preview-norms-03.svg"],
-    "botThinkingImage": "/assets/placeholders/bot-placeholder.png",
+    "botThinkingImage": "/assets/placeholders/bot-placeholder.webp",
     "readingTime": "14 минут"
   },
   {
@@ -119,7 +119,7 @@
     "tags": ["налоги", "НДФЛ", "НДС"],
     "accent": ["#ac2954", "#86efac", "#f97316"],
     "folderPreviewImages": ["/assets/placeholders/preview-norms-01.svg", "/assets/placeholders/preview-norms-02.svg", "/assets/placeholders/preview-norms-03.svg"],
-    "botThinkingImage": "/assets/placeholders/bot-placeholder.png",
+    "botThinkingImage": "/assets/placeholders/bot-placeholder.webp",
     "readingTime": "13 минут"
   },
   {
@@ -130,7 +130,7 @@
     "tags": ["семья", "брак", "социальный институт"],
     "accent": ["#ac2954", "#f9a8d4", "#a78bfa"],
     "folderPreviewImages": ["/assets/placeholders/preview-norms-01.svg", "/assets/placeholders/preview-norms-02.svg", "/assets/placeholders/preview-norms-03.svg"],
-    "botThinkingImage": "/assets/placeholders/bot-placeholder.png",
+    "botThinkingImage": "/assets/placeholders/bot-placeholder.webp",
     "readingTime": "11 минут"
   },
   {
@@ -141,7 +141,7 @@
     "tags": ["стратификация", "мобильность", "неравенство"],
     "accent": ["#ac2954", "#c084fc", "#34d399"],
     "folderPreviewImages": ["/assets/placeholders/preview-norms-01.svg", "/assets/placeholders/preview-norms-02.svg", "/assets/placeholders/preview-norms-03.svg"],
-    "botThinkingImage": "/assets/placeholders/bot-placeholder.png",
+    "botThinkingImage": "/assets/placeholders/bot-placeholder.webp",
     "readingTime": "12 минут"
   },
   {
@@ -152,7 +152,7 @@
     "tags": ["миграция", "демография", "интеграция"],
     "accent": ["#ac2954", "#67e8f9", "#fbbf24"],
     "folderPreviewImages": ["/assets/placeholders/preview-norms-01.svg", "/assets/placeholders/preview-norms-02.svg", "/assets/placeholders/preview-norms-03.svg"],
-    "botThinkingImage": "/assets/placeholders/bot-placeholder.png",
+    "botThinkingImage": "/assets/placeholders/bot-placeholder.webp",
     "readingTime": "12 минут"
   },
   {
@@ -163,7 +163,7 @@
     "tags": ["конфликт", "переговоры", "социальные группы"],
     "accent": ["#ac2954", "#fb7185", "#f97316"],
     "folderPreviewImages": ["/assets/placeholders/preview-norms-01.svg", "/assets/placeholders/preview-norms-02.svg", "/assets/placeholders/preview-norms-03.svg"],
-    "botThinkingImage": "/assets/placeholders/bot-placeholder.png",
+    "botThinkingImage": "/assets/placeholders/bot-placeholder.webp",
     "readingTime": "11 минут"
   }
 ]
