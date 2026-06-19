@@ -1,4 +1,6 @@
 import { motion, type HTMLMotionProps } from "motion/react";
+import { publicAsset } from "../../content/assets";
+import "../../styles/orb.css";
 
 type OrbBaseProps = {
   image: string;
@@ -16,7 +18,7 @@ function OrbCore({ image }: { image: string }) {
     <>
       <span className="living-orb__glow" aria-hidden="true" />
       <span className="living-orb__rim" aria-hidden="true">
-        <img src={image} alt="" draggable="false" />
+        <img src={publicAsset(image)} alt="" draggable="false" />
       </span>
       <span className="living-orb__pulse" aria-hidden="true" />
     </>

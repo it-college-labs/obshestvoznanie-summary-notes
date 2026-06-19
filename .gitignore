@@ -3,5 +3,12 @@ dist
 dist-ssr
 .DS_Store
 *.local
+!data/Caddyfile.local
 .vite
 coverage
+.env
+.env.*
+!.env.example
+data/postgres/
+data/uploads/
+backend/server

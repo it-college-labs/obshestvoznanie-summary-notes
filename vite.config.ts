@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: "./",
+  base: "/obshestvoznanie-summary-notes/",
   plugins: [
     mdx({
       providerImportSource: "@mdx-js/react",
@@ -14,4 +14,16 @@ export default defineConfig({
     }),
     react(),
   ],
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
+      "/uploads": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
+    },
+  },
 });

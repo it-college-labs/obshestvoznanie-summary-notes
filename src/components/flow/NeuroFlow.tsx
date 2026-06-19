@@ -1,9 +1,7 @@
-import { ArrowLeft } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   type KeyboardEvent,
   type MouseEvent,
-  type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -11,46 +9,31 @@ import {
   useState,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArticleFolderCard } from "../archive/ArticleFolderCard";
-import { StreamingArticle, type GenerationPhase } from "../article/StreamingArticle";
-import { LivingOrbButton } from "../orb/LivingOrb";
-import { publicAsset } from "../../content/assets";
-import type { ArticleConfig } from "../../content/types";
+import { ArchiveView } from "./parts/ArchiveView";
+import { ArticleView } from "./parts/ArticleView";
+import { BotOrb } from "./parts/BotOrb";
+import { useArticles } from "../../hooks/useArticles";
+import { useViewport } from "../../flow/useViewport";
+import { useCoarsePointer } from "../../flow/useCoarsePointer";
+import { useFlowTimers } from "../../flow/useFlowTimers";
+import { useAssistantPanel } from "../../flow/useAssistantPanel";
+import { useArticleResize } from "../../flow/useArticleResize";
+import { useAdminHint } from "../../flow/useAdminHint";
+import { grantAdminEntry } from "../../adminEntry";
+import {
+  type FlowPhase,
+  getShellRect,
+  getBotRect,
+  getArticleIdFromPath,
+  getInitialPhase,
+  isReadableArticlePhase,
+} from "../../flow/layout";
+import type { ArticleListItem } from "../../api/types";
+import "../../styles/flow.css";
+import "../../styles/archive.css";
+import "../../styles/article.css";
+import "../../styles/mdx.css";
 
-type FlowPhase =
-  | "intro"
-  | "movingToArchive"
-  | "openingArchive"
-  | "settlingArchive"
-  | "archive"
-  | "preparingArticle"
-  | "closingToArticle"
-  | "preparingArchive"
-  | "closingToArchive"
-  | "resettingToIntro"
-  | "openingArticle"
-  | "thinking"
-  | "streaming"
-  | "ready";
-
-type Rect = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  radius: number;
-};
-
-type Viewport = {
-  width: number;
-  height: number;
-};
-
-type NeuroFlowProps = {
-  articles: ArticleConfig[];
-};
-
-const BOT_IMAGE = publicAsset("assets/placeholders/bot-placeholder.png");
 const INTRO_DELAY = 1550;
 const SHELL_MORPH_MS = 960;
 const ROUTE_SWAP_MS = SHELL_MORPH_MS + 40;
@@ -58,264 +41,20 @@ const ARCHIVE_UNLOAD_MS = 560;
 const ARTICLE_UNLOAD_MS = 520;
 const BOT_SETTLE_MS = 860;
 const RESET_TO_INTRO_MS = 980;
-const ARTICLE_DEFAULT_WIDTH = 1160;
-const ARTICLE_MIN_WIDTH = 760;
-const BOT_MESSAGES = [
-  "Читайте внимательно!",
-  "Да, я это собрал сам!",
-  "Наведи на папку, там спрятаны превью.",
-  "Тут всё разложено по неделям.",
-  "Выбирай тему, а я подержу переход.",
-  "Превью выезжают прямо из папки.",
-];
-const RESET_MESSAGES = [
-  "Хотите начать сначала? :)",
-  "Вернуть первый экран?",
-  "Соберём маршрут заново?",
-];
 
-function getViewport(): Viewport {
-  return {
-    width: window.innerWidth,
-    height: window.innerHeight,
-  };
+function getArticleById(articles: ArticleListItem[], articleId?: string) {
+  if (!articleId) return articles[0];
+  return articles.find((article) => article.id === articleId);
 }
 
-function useViewport() {
-  const [viewport, setViewport] = useState(() => getViewport());
-
-  useEffect(() => {
-    let raf = 0;
-    const sync = () => {
-      if (raf) return;
-      raf = window.requestAnimationFrame(() => {
-        raf = 0;
-        setViewport(getViewport());
-      });
-    };
-    window.addEventListener("resize", sync);
-    return () => {
-      window.removeEventListener("resize", sync);
-      window.cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  return viewport;
-}
-
-function useCoarsePointer() {
-  const [isCoarse, setIsCoarse] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia("(hover: none), (pointer: coarse)").matches;
-  });
-
-  useEffect(() => {
-    const media = window.matchMedia("(hover: none), (pointer: coarse)");
-    const sync = () => setIsCoarse(media.matches);
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
-
-  return isCoarse;
-}
-
-function getInset(width: number) {
-  if (width <= 640) return 16;
-  return Math.max(20, Math.min(48, width * 0.04));
-}
-
-function getShellContentInset(width: number) {
-  return Math.max(16, Math.min(24, width * 0.02));
-}
-
-function getBotSize(width: number) {
-  return Math.max(116, Math.min(300, width * 0.23));
-}
-
-function getIntroBotRect(viewport: Viewport): Rect {
-  const size = getBotSize(viewport.width);
-
-  return {
-    x: viewport.width / 2 - size / 2,
-    y: viewport.height / 2 - size / 2,
-    width: size,
-    height: size,
-    radius: 999,
-  };
-}
-
-function getTransferBotRect(viewport: Viewport): Rect {
-  const inset = getInset(viewport.width);
-  const size = Math.max(96, Math.min(184, viewport.width * 0.15));
-
-  return {
-    x: viewport.width - inset - size,
-    y: viewport.height - inset - size,
-    width: size,
-    height: size,
-    radius: 999,
-  };
-}
-
-function getArchiveBotRect(viewport: Viewport): Rect {
-  const archive = getArchiveRect(viewport);
-  const contentInset = getShellContentInset(viewport.width);
-  const size = Math.max(104, Math.min(176, viewport.width * 0.14));
-
-  if (viewport.width <= 760) {
-    return {
-      x: archive.x + archive.width - contentInset - size - 10,
-      y: archive.y + archive.height - contentInset - size - 12,
-      width: size,
-      height: size,
-      radius: 999,
-    };
-  }
-
-  const railWidth = Math.max(236, Math.min(340, archive.width * 0.28));
-  const railLeft = archive.x + archive.width - contentInset - railWidth;
-
-  return {
-    x: railLeft + railWidth / 2 - size / 2,
-    y: archive.y + archive.height / 2 - size / 2,
-    width: size,
-    height: size,
-    radius: 999,
-  };
-}
-
-function getArchiveRect(viewport: Viewport): Rect {
-  const inset = getInset(viewport.width);
-
-  return {
-    x: inset,
-    y: inset,
-    width: viewport.width - inset * 2,
-    height: viewport.height - inset * 2,
-    radius: viewport.width <= 640 ? 24 : 32,
-  };
-}
-
-function clampArticleWidth(width: number, viewport: Viewport) {
-  const inset = getInset(viewport.width);
-  const maxWidth = viewport.width - inset * 2;
-  const minWidth = Math.min(ARTICLE_MIN_WIDTH, maxWidth);
-
-  return Math.max(minWidth, Math.min(maxWidth, width));
-}
-
-function getArticleRect(viewport: Viewport, articleWidth: number): Rect {
-  const inset = getInset(viewport.width);
-  const width = clampArticleWidth(articleWidth, viewport);
-
-  return {
-    x: (viewport.width - width) / 2,
-    y: inset,
-    width,
-    height: viewport.height - inset * 2,
-    radius: viewport.width <= 640 ? 24 : 32,
-  };
-}
-
-function isTransferPhase(phase: FlowPhase) {
-  return (
-    phase === "movingToArchive" ||
-    phase === "closingToArticle" ||
-    phase === "closingToArchive"
-  );
-}
-
-function isReadableArticlePhase(phase: FlowPhase) {
-  return (
-    phase === "openingArticle" ||
-    phase === "thinking" ||
-    phase === "streaming" ||
-    phase === "ready"
-  );
-}
-
-function getShellRect(
-  phase: FlowPhase,
-  viewport: Viewport,
-  articleWidth: number,
-): Rect {
-  if (phase === "intro" || phase === "resettingToIntro") {
-    return getIntroBotRect(viewport);
-  }
-  if (isTransferPhase(phase)) {
-    return getTransferBotRect(viewport);
-  }
-  if (
-    phase === "openingArticle" ||
-    phase === "preparingArchive" ||
-    phase === "thinking" ||
-    phase === "streaming" ||
-    phase === "ready"
-  ) {
-    return getArticleRect(viewport, articleWidth);
-  }
-
-  return getArchiveRect(viewport);
-}
-
-function getBotRect(phase: FlowPhase, viewport: Viewport): Rect {
-  if (phase === "intro" || phase === "resettingToIntro") {
-    return getIntroBotRect(viewport);
-  }
-
-  if (
-    phase === "archive" ||
-    phase === "settlingArchive" ||
-    phase === "preparingArticle"
-  ) {
-    return getArchiveBotRect(viewport);
-  }
-
-  return getTransferBotRect(viewport);
-}
-
-function getArticleIdFromPath(pathname: string) {
-  const match = pathname.match(/^\/article\/([^/]+)/);
-  return match?.[1];
-}
-
-function getArticleById(articles: ArticleConfig[], articleId?: string) {
-  return articles.find((article) => article.id === articleId) ?? articles[0];
-}
-
-function getInitialPhase(pathname: string): FlowPhase {
-  if (getArticleIdFromPath(pathname)) return "ready";
-  return "intro";
-}
-
-function SkeletonThought() {
-  return (
-    <motion.div
-      key="thinking"
-      className="thinking-surface flow-thinking"
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
-      transition={{ duration: 0.42 }}
-    >
-      <span className="thinking-mini-orb" aria-hidden="true" />
-      <span className="thinking-line thinking-line--wide" />
-      <span className="thinking-line" />
-      <span className="thinking-line thinking-line--short" />
-    </motion.div>
-  );
-}
-
-export function NeuroFlow({ articles }: NeuroFlowProps) {
+export function NeuroFlow() {
+  const { articles, loading: articlesLoading, error: articlesError } = useArticles();
   const viewport = useViewport();
   const isCoarsePointer = useCoarsePointer();
   const navigate = useNavigate();
   const location = useLocation();
   const shouldReduceMotion = useReducedMotion();
-  const timers = useRef<number[]>([]);
-  const assistantCloseTimer = useRef<number | null>(null);
   const pendingRouteTransition = useRef<"article" | "archive" | null>(null);
-  const resizeCleanup = useRef<(() => void) | null>(null);
   const [phase, setPhase] = useState<FlowPhase>(() =>
     getInitialPhase(location.pathname),
   );
@@ -323,36 +62,63 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     getInitialPhase(location.pathname) !== "intro",
   );
   const [selectedArticleId, setSelectedArticleId] = useState(
-    () => getArticleIdFromPath(location.pathname) ?? articles[0].id,
+    () => getArticleIdFromPath(location.pathname) ?? articles[0]?.id ?? "",
   );
-  const [assistantPanelActive, setAssistantPanelActive] = useState(false);
-  const [botMessageIndex, setBotMessageIndex] = useState(0);
-  const [botInteractionCount, setBotInteractionCount] = useState(0);
-  const [articleWidth, setArticleWidth] = useState(ARTICLE_DEFAULT_WIDTH);
+
+  useEffect(() => {
+    if (articles.length > 0 && !selectedArticleId) {
+      setSelectedArticleId(articles[0].id);
+    }
+  }, [articles, selectedArticleId]);
+
+  const { clearTimers, schedule } = useFlowTimers();
+  const {
+    assistantPanelActive,
+    currentBotMessage,
+    isResetTip,
+    setAssistantPanelActive,
+    setBotMessageIndex,
+    setBotInteractionCount,
+    showAssistantPanel,
+    hideAssistantPanel,
+    incrementBotInteraction,
+    clearAssistantCloseTimer,
+  } = useAssistantPanel({ phase });
+  const handleArticleWidthChange = useCallback(() => {}, []);
+  const {
+    articleWidth,
+    startResize,
+    resizeHandlersReady,
+    handleResizeKeyDown,
+    stopResize,
+  } = useArticleResize({
+    viewport,
+    phase,
+    onWidthChange: handleArticleWidthChange,
+  });
+  const {
+    adminHintVisible,
+    setAdminHintVisible,
+    onPointerDown,
+    onPointerUp,
+    onPointerLeave,
+  } = useAdminHint();
 
   const selectedArticle = useMemo(
-    () => getArticleById(articles, selectedArticleId),
+    () => (articles.length > 0 ? getArticleById(articles, selectedArticleId) : undefined),
     [articles, selectedArticleId],
   );
 
   const shellRect = getShellRect(phase, viewport, articleWidth);
-  const botRect = getBotRect(phase, viewport);
-  const renderedBotRect =
-    phase === "intro" && !introBotArrived
-      ? {
-          ...botRect,
-          x: -botRect.width - 96,
-        }
-      : botRect;
+  const renderedBotRect = useMemo(() => {
+    const rect = getBotRect(phase, viewport);
+    if (phase === "intro" && !introBotArrived) {
+      return { ...rect, x: -rect.width - 96 };
+    }
+    return rect;
+  }, [phase, viewport, introBotArrived]);
   const shellShouldRender =
     phase !== "intro" && phase !== "movingToArchive";
-  const isResetTip =
-    phase === "archive" &&
-    botInteractionCount > 0 &&
-    botInteractionCount % 3 === 0;
-  const currentBotMessage = isResetTip
-    ? RESET_MESSAGES[(botInteractionCount / 3 - 1) % RESET_MESSAGES.length]
-    : BOT_MESSAGES[botMessageIndex];
   const assistantCopyVisible = assistantPanelActive || isResetTip;
   const botIsActive =
     (phase !== "archive" && phase !== "ready") ||
@@ -384,50 +150,6 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     phase === "thinking" ||
     phase === "streaming" ||
     phase === "ready";
-  const articleCanResize =
-    viewport.width > 760 &&
-    (phase === "thinking" || phase === "streaming" || phase === "ready");
-
-  const clearTimers = () => {
-    timers.current.forEach((timer) => window.clearTimeout(timer));
-    timers.current = [];
-  };
-
-  const clearAssistantCloseTimer = () => {
-    if (assistantCloseTimer.current === null) return;
-    window.clearTimeout(assistantCloseTimer.current);
-    assistantCloseTimer.current = null;
-  };
-
-  const showAssistantPanel = useCallback(() => {
-    if (phase !== "archive") return;
-    clearAssistantCloseTimer();
-    setAssistantPanelActive(true);
-  }, [phase]);
-
-  const hideAssistantPanel = useCallback(() => {
-    if (phase !== "archive" || isResetTip) return;
-    clearAssistantCloseTimer();
-    assistantCloseTimer.current = window.setTimeout(() => {
-      setAssistantPanelActive(false);
-      assistantCloseTimer.current = null;
-    }, 70);
-  }, [isResetTip, phase]);
-
-  const schedule = (callback: () => void, delay: number) => {
-    const timer = window.setTimeout(callback, delay);
-    timers.current.push(timer);
-  };
-
-  useEffect(
-    () => () => {
-      clearTimers();
-      clearAssistantCloseTimer();
-      resizeCleanup.current?.();
-      resizeCleanup.current = null;
-    },
-    [],
-  );
 
   useEffect(() => {
     if (phase !== "intro" || introBotArrived) return;
@@ -512,7 +234,7 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
       schedule(() => {
         pendingRouteTransition.current = "article";
         setPhase("openingArticle");
-        navigate(`/article/${selectedArticle.id}`);
+        if (selectedArticle) navigate(`/article/${selectedArticle.id}`);
       }, shouldReduceMotion ? 80 : ROUTE_SWAP_MS);
     }
 
@@ -556,7 +278,16 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     }
 
     return clearTimers;
-  }, [navigate, phase, selectedArticle.id, shouldReduceMotion]);
+  }, [clearTimers, navigate, phase, schedule, selectedArticle, selectedArticle?.id, setAssistantPanelActive, setBotInteractionCount, setBotMessageIndex, shouldReduceMotion]);
+
+  useEffect(
+    () => () => {
+      clearTimers();
+      clearAssistantCloseTimer();
+      stopResize();
+    },
+    [clearTimers, clearAssistantCloseTimer, stopResize],
+  );
 
   const activateArchive = useCallback(() => {
     if (phase !== "intro" || !introBotArrived) return;
@@ -564,19 +295,19 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
   }, [introBotArrived, phase]);
 
   const openArticle = useCallback(
-    (article: ArticleConfig) => {
+    (article: ArticleListItem) => {
       if (phase !== "archive") return;
       setSelectedArticleId(article.id);
       setAssistantPanelActive(false);
       setPhase("preparingArticle");
     },
-    [phase],
+    [phase, setAssistantPanelActive, setSelectedArticleId],
   );
 
   const backToArchive = useCallback(() => {
     setAssistantPanelActive(false);
     setPhase("preparingArchive");
-  }, []);
+  }, [setAssistantPanelActive]);
 
   const handleBotClick = useCallback(() => {
     if (phase === "intro") {
@@ -585,23 +316,15 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     }
 
     if (phase === "archive") {
-      setBotInteractionCount((count) => {
-        const nextCount = count + 1;
-
-        if (nextCount % 3 !== 0) {
-          setBotMessageIndex((index) => (index + 1) % BOT_MESSAGES.length);
-        }
-
-        return nextCount;
-      });
-      setAssistantPanelActive(true);
+      incrementBotInteraction();
+      showAssistantPanel();
       return;
     }
 
     if (isReadableArticlePhase(phase)) {
       backToArchive();
     }
-  }, [activateArchive, backToArchive, phase]);
+  }, [activateArchive, backToArchive, incrementBotInteraction, phase, showAssistantPanel]);
 
   const handleRailClick = useCallback(
     (event: MouseEvent<HTMLElement>) => {
@@ -622,93 +345,18 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
     [handleBotClick, phase],
   );
 
-  const resizeArticleBy = useCallback(
-    (delta: number) => {
-      setArticleWidth((width) => clampArticleWidth(width + delta, viewport));
-    },
-    [viewport],
-  );
-
-  const handleArticleResizeKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLButtonElement>, side: "left" | "right") => {
-      const step = event.shiftKey ? 96 : 32;
-
-      if (side === "left") {
-        if (event.key === "ArrowLeft") {
-          event.preventDefault();
-          resizeArticleBy(step);
-        }
-        if (event.key === "ArrowRight") {
-          event.preventDefault();
-          resizeArticleBy(-step);
-        }
-        return;
-      }
-
-      if (event.key === "ArrowRight") {
-        event.preventDefault();
-        resizeArticleBy(step);
-      }
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        resizeArticleBy(-step);
-      }
-    },
-    [resizeArticleBy],
-  );
-
-  const startArticleResize = useCallback(
-    (
-      event: ReactPointerEvent<HTMLButtonElement>,
-      side: "left" | "right",
-    ) => {
-      if (!articleCanResize) return;
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      resizeCleanup.current?.();
-
-      const startX = event.clientX;
-      const startWidth = shellRect.width;
-      const direction = side === "left" ? -1 : 1;
-      const previousCursor = document.body.style.cursor;
-      const previousUserSelect = document.body.style.userSelect;
-
-      document.body.style.cursor = "ew-resize";
-      document.body.style.userSelect = "none";
-
-      const handleMove = (moveEvent: PointerEvent) => {
-        const delta = (moveEvent.clientX - startX) * direction * 2;
-        setArticleWidth(clampArticleWidth(startWidth + delta, viewport));
-      };
-
-      const stopResize = () => {
-        window.removeEventListener("pointermove", handleMove);
-        window.removeEventListener("pointerup", stopResize);
-        window.removeEventListener("pointercancel", stopResize);
-        document.body.style.cursor = previousCursor;
-        document.body.style.userSelect = previousUserSelect;
-        resizeCleanup.current = null;
-      };
-
-      resizeCleanup.current = stopResize;
-      window.addEventListener("pointermove", handleMove);
-      window.addEventListener("pointerup", stopResize, { once: true });
-      window.addEventListener("pointercancel", stopResize, { once: true });
-    },
-    [articleCanResize, shellRect.width, viewport],
-  );
-
   const restartFlow = useCallback(() => {
     clearTimers();
     clearAssistantCloseTimer();
     setAssistantPanelActive(false);
     setPhase("resettingToIntro");
-  }, []);
+  }, [clearAssistantCloseTimer, clearTimers, setAssistantPanelActive]);
 
-  const streamingPhase: Exclude<GenerationPhase, "thinking"> =
-    phase === "streaming" ? "streaming" : "ready";
+  const handleAdminClick = useCallback(() => {
+    grantAdminEntry();
+    setAdminHintVisible(false);
+    navigate("/admin");
+  }, [navigate, setAdminHintVisible]);
 
   return (
     <main className={`flow-stage flow-stage--${phase}`}>
@@ -755,296 +403,73 @@ export function NeuroFlow({ articles }: NeuroFlowProps) {
         </AnimatePresence>
         <AnimatePresence mode="wait">
           {showArchiveContent && (
-            <motion.div
-              key="archive"
-              className={`flow-shell-content flow-archive-content ${
-                archiveIsRevealing ? "flow-archive-content--revealing" : ""
-              } ${archiveIsLeaving ? "flow-archive-content--leaving" : ""}`}
-              initial={{ opacity: 0, y: 18, scale: 0.965 }}
-              animate={
-                archiveIsLeaving
-                  ? { opacity: 0, y: 12, scale: 0.985 }
-                  : { opacity: 1, y: 0, scale: 1 }
-              }
-              exit={{ opacity: 0, scale: 0.985 }}
-              transition={{
-                delay: archiveIsLeaving ? 0 : 0.08,
-                duration: shouldReduceMotion ? 0.16 : archiveIsLeaving ? 0.2 : 0.68,
-                ease: [0.16, 1, 0.3, 1],
-              }}
-            >
-              <div className="flow-archive-layout">
-                <section className="flow-archive-files" aria-label="Статьи">
-                  <div className="folder-cluster">
-                  <motion.header
-                    className="archive-topbar"
-                    aria-label="Нейроархив"
-                    initial={{
-                      opacity: 0,
-                      y: -18,
-                      scale: 0.965,
-                    }}
-                    animate={
-                      archiveIsLeaving
-                        ? { opacity: 0, y: -12, scale: 0.985 }
-                        : { opacity: 1, y: 0, scale: 1 }
-                    }
-                    transition={{
-                      delay: archiveIsLeaving ? 0 : 0.14,
-                      duration: shouldReduceMotion ? 0.16 : archiveIsLeaving ? 0.18 : 0.58,
-                      ease: [0.16, 1, 0.3, 1],
-                    }}
-                  >
-                    <span className="window-dots" aria-hidden="true">
-                      <span />
-                      <span />
-                      <span />
-                    </span>
-                    <span className="archive-path">Конспекты по обществознанию</span>
-                  </motion.header>
-
-                    <div className="folder-grid">
-                      {articles.map((article, index) => (
-                        <ArticleFolderCard
-                          key={article.id}
-                          article={article}
-                          index={index}
-                          isLeaving={archiveIsLeaving}
-                          isCoarsePointer={isCoarsePointer}
-                          onOpen={openArticle}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </section>
-
-                <motion.aside
-                  className={`flow-assistant-rail ${
-                    archiveIsLeaving ? "flow-assistant-rail--leaving" : ""
-                  } ${assistantCopyVisible ? "flow-assistant-rail--copy-active" : ""}`}
-                  aria-label="Ассистент"
-                  initial={{
-                    opacity: 0,
-                    x: 28,
-                    scale: 0.965,
-                  }}
-                  animate={
-                    archiveIsLeaving
-                      ? { opacity: 0, x: 22, scale: 0.985 }
-                      : { opacity: 1, x: 0, scale: 1 }
-                  }
-                  transition={{
-                    delay: archiveIsLeaving ? 0 : 0.16,
-                    duration: shouldReduceMotion ? 0.16 : archiveIsLeaving ? 0.2 : 0.46,
-                    ease: [0.16, 1, 0.3, 1],
-                  }}
-                  role={phase === "archive" ? "button" : undefined}
-                  tabIndex={phase === "archive" ? 0 : -1}
-                  onClick={handleRailClick}
-                  onKeyDown={handleRailKeyDown}
-                  onPointerEnter={showAssistantPanel}
-                  onPointerLeave={hideAssistantPanel}
-                >
-                  <span className="flow-assistant-rail__base" aria-hidden="true" />
-                  <span className="flow-assistant-rail__grid" aria-hidden="true" />
-                  <span className="flow-assistant-rail__halo" aria-hidden="true" />
-                  <span className="flow-assistant-rail__divider" aria-hidden="true" />
-                  <AnimatePresence>
-                    {assistantCopyVisible && (
-                      <motion.div
-                        className={`flow-assistant-copy ${
-                          isResetTip ? "flow-assistant-copy--reset" : ""
-                        }`}
-                        initial={{ opacity: 0, y: 14, scale: 0.965 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.985 }}
-                        transition={{
-                          duration: 0.42,
-                          ease: [0.16, 1, 0.3, 1],
-                        }}
-                      >
-                        <AnimatePresence mode="wait">
-                          <motion.span
-                            key={currentBotMessage}
-                            className="flow-assistant-copy__message"
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -8 }}
-                            transition={{
-                              duration: 0.28,
-                              ease: [0.22, 1, 0.36, 1],
-                            }}
-                          >
-                            {currentBotMessage}
-                          </motion.span>
-                        </AnimatePresence>
-                        {isResetTip && (
-                          <motion.button
-                            className="flow-assistant-copy__button"
-                            type="button"
-                            onClick={restartFlow}
-                            initial={{ opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.24 }}
-                          >
-                            На старт
-                          </motion.button>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.aside>
-              </div>
-            </motion.div>
+            <ArchiveView
+              articles={articles}
+              articlesLoading={articlesLoading}
+              articlesError={articlesError}
+              isCoarsePointer={isCoarsePointer}
+              phase={phase}
+              archiveIsRevealing={archiveIsRevealing}
+              archiveIsLeaving={archiveIsLeaving}
+              assistantCopyVisible={assistantCopyVisible}
+              currentBotMessage={currentBotMessage}
+              isResetTip={isResetTip}
+              adminHintVisible={adminHintVisible}
+              shouldReduceMotion={shouldReduceMotion}
+              onOpenArticle={openArticle}
+              onRailClick={handleRailClick}
+              onRailKeyDown={handleRailKeyDown}
+              onAssistantPanelEnter={showAssistantPanel}
+              onAssistantPanelLeave={hideAssistantPanel}
+              onAdminPointerDown={onPointerDown}
+              onAdminPointerUp={onPointerUp}
+              onAdminPointerLeave={onPointerLeave}
+              onAdminClick={handleAdminClick}
+              onRestartFlow={restartFlow}
+            />
           )}
 
           {showArticleContent && (
-            <motion.div
-              key="article"
-              className="flow-shell-content flow-article-content"
-              initial={{ opacity: 0, y: 20, filter: "blur(12px)" }}
-              animate={{
-                opacity: articleIsLeaving ? 0 : 1,
-                y: articleIsLeaving ? -14 : 0,
-                scale: articleIsLeaving ? 0.965 : 1,
-                filter: articleIsLeaving ? "blur(6px)" : "blur(0px)",
-              }}
-              exit={{ opacity: 0, y: 10, scale: 0.985 }}
-              transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div
-                className={`generation-blur generation-blur--top ${
-                  phase === "streaming" ? "generation-blur--active" : ""
-                }`}
-                aria-hidden="true"
-              />
-              <div
-                className={`generation-blur generation-blur--bottom ${
-                  phase === "streaming" ? "generation-blur--active" : ""
-                }`}
-                aria-hidden="true"
-              />
-              <button
-                className="back-button"
-                type="button"
-                onClick={backToArchive}
-                disabled={articleIsLeaving}
-              >
-                <ArrowLeft size={18} />
-                Назад
-              </button>
-
-              <AnimatePresence mode="wait">
-                {phase === "thinking" ? (
-                  <SkeletonThought />
-                ) : (
-                  <motion.div
-                    key="article-content"
-                    className="article-stream-stage"
-                    initial={{ opacity: 0, y: 22, filter: "blur(12px)" }}
-                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    transition={{ duration: 0.74, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <StreamingArticle
-                      key={selectedArticle.id}
-                      article={selectedArticle}
-                      phase={streamingPhase}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+            <ArticleView
+              article={selectedArticle}
+              phase={phase}
+              articleIsLeaving={articleIsLeaving}
+              onBackToArchive={backToArchive}
+            />
           )}
         </AnimatePresence>
-        {articleCanResize && (
+
+        {resizeHandlersReady && (
           <>
             <button
               type="button"
               className="article-resize-handle article-resize-handle--left"
               aria-label="Изменить ширину статьи слева"
-              onPointerDown={(event) => startArticleResize(event, "left")}
-              onKeyDown={(event) => handleArticleResizeKeyDown(event, "left")}
+              onPointerDown={(event) => startResize(event, "left")}
+              onKeyDown={(event) => handleResizeKeyDown(event, "left")}
             />
             <button
               type="button"
               className="article-resize-handle article-resize-handle--right"
               aria-label="Изменить ширину статьи справа"
-              onPointerDown={(event) => startArticleResize(event, "right")}
-              onKeyDown={(event) => handleArticleResizeKeyDown(event, "right")}
+              onPointerDown={(event) => startResize(event, "right")}
+              onKeyDown={(event) => handleResizeKeyDown(event, "right")}
             />
           </>
         )}
       </motion.div>
 
-      <LivingOrbButton
-        className={`flow-bot ${phase === "archive" ? "flow-bot--archive" : ""} ${
-          isResetTip ? "flow-bot--reset-tip" : ""
-        }`}
-        image={selectedArticle.botThinkingImage ?? BOT_IMAGE}
-        active={botIsActive}
-        ariaLabel="Управлять нейроархивом"
+      <BotOrb
+        phase={phase}
+        introBotArrived={introBotArrived}
+        renderedBotRect={renderedBotRect}
+        selectedArticle={selectedArticle}
+        botIsActive={botIsActive}
+        isResetTip={isResetTip}
+        shouldReduceMotion={shouldReduceMotion}
         onClick={handleBotClick}
         onPointerEnter={showAssistantPanel}
         onPointerLeave={hideAssistantPanel}
-        disabled={
-          (phase === "intro" && !introBotArrived) ||
-          phase === "movingToArchive" ||
-          phase === "openingArchive" ||
-          phase === "settlingArchive" ||
-          phase === "preparingArticle" ||
-          phase === "closingToArticle" ||
-          phase === "preparingArchive" ||
-          phase === "closingToArchive" ||
-          phase === "resettingToIntro"
-        }
-        initial={false}
-        animate={{
-          x: renderedBotRect.x,
-          y: renderedBotRect.y,
-          width: renderedBotRect.width,
-          opacity:
-            phase === "intro" && !introBotArrived
-              ? 0
-              : 1,
-          scale:
-            phase === "closingToArticle" ||
-            phase === "closingToArchive" ||
-            phase === "resettingToIntro" ||
-            phase === "openingArticle"
-              ? [1, 0.9, 1]
-              : 1,
-        }}
-        transition={{
-          x: shouldReduceMotion
-            ? { duration: 0.01 }
-            : {
-                type: "spring",
-                stiffness: phase === "settlingArchive" ? 74 : 92,
-                damping: phase === "settlingArchive" ? 18 : 20,
-                mass: phase === "settlingArchive" ? 1.24 : 1.08,
-              },
-          y: shouldReduceMotion
-            ? { duration: 0.01 }
-            : {
-                type: "spring",
-                stiffness: phase === "settlingArchive" ? 74 : 92,
-                damping: phase === "settlingArchive" ? 18 : 20,
-                mass: phase === "settlingArchive" ? 1.24 : 1.08,
-              },
-          width: {
-            duration: shouldReduceMotion ? 0.01 : 0.72,
-            ease: [0.16, 1, 0.3, 1],
-          },
-          opacity: {
-            duration: shouldReduceMotion ? 0.01 : 0.42,
-            ease: [0.16, 1, 0.3, 1],
-          },
-          scale: {
-            duration: shouldReduceMotion ? 0.01 : 0.54,
-            ease: [0.16, 1, 0.3, 1],
-          },
-        }}
-        whileTap={phase === "intro" ? { scale: 0.96 } : undefined}
       />
     </main>
   );
