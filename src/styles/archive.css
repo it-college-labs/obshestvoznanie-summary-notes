@@ -1,7 +1,10 @@
 .archive-topbar {
   flex: 0 0 auto;
-  position: relative;
-  z-index: 2;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 14;
   display: flex;
   width: 100%;
   min-height: 48px;
@@ -16,6 +19,9 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.1),
     inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  transition:
+    z-index 0s linear 0.24s,
+    box-shadow 0.34s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .window-dots {
@@ -54,6 +60,9 @@
 }
 
 .folder-cluster {
+  --archive-topbar-height: 48px;
+  --folder-grid-pad-y: clamp(20px, 2.5vw, 32px);
+  --folder-grid-pad-x: clamp(16px, 2vw, 28px);
   position: relative;
   z-index: 1;
   display: flex;
@@ -83,6 +92,54 @@
   pointer-events: none;
 }
 
+.folder-cluster::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--archive-topbar-height) - 1px);
+  right: 0;
+  left: 0;
+  z-index: 30;
+  height: 66px;
+  background:
+    radial-gradient(
+      ellipse at 50% -10%,
+      rgba(255, 214, 228, 0.36) 0%,
+      rgba(216, 76, 120, 0.18) 42%,
+      transparent 78%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(248, 210, 224, 0.22),
+      rgba(216, 76, 120, 0.1) 42%,
+      transparent 82%
+    );
+  filter: blur(5px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-14px) scaleY(0.68);
+  transform-origin: top;
+  transition:
+    opacity 0.34s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.44s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.folder-cluster--scrolled .archive-topbar {
+  z-index: 34;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+    0 18px 42px rgba(172, 41, 84, 0.22),
+    0 10px 26px rgba(0, 0, 0, 0.18);
+  transition:
+    z-index 0s,
+    box-shadow 0.34s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.folder-cluster--scrolled::after {
+  opacity: 1;
+  transform: translateY(0) scaleY(1);
+}
+
 .archive-state {
   position: relative;
   z-index: 4;
@@ -90,7 +147,10 @@
   flex: 1 1 auto;
   min-height: 220px;
   place-items: center;
-  margin: clamp(24px, 3vw, 38px) clamp(18px, 2.5vw, 32px);
+  margin:
+    calc(var(--archive-topbar-height) + clamp(24px, 3vw, 38px))
+    clamp(18px, 2.5vw, 32px)
+    clamp(24px, 3vw, 38px);
   border: 1px dashed rgba(248, 250, 252, 0.18);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.06);
@@ -105,8 +165,8 @@
 }
 
 .folder-grid {
-  position: relative;
-  z-index: 4;
+  position: absolute;
+  inset: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
   gap: clamp(14px, 2vw, 26px) clamp(12px, 1.6vw, 18px);
@@ -115,7 +175,11 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: clamp(20px, 2.5vw, 32px) clamp(16px, 2vw, 28px);
+  padding:
+    calc(var(--archive-topbar-height) + var(--folder-grid-pad-y))
+    var(--folder-grid-pad-x)
+    var(--folder-grid-pad-y);
+  scrollbar-gutter: stable;
 }
 
 .article-folder {
@@ -141,7 +205,7 @@
 .article-folder--open,
 .article-folder:hover,
 .article-folder:focus-visible {
-  z-index: 20;
+  z-index: 24;
 }
 
 .article-folder::before {
@@ -305,10 +369,12 @@
   .folder-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px 10px;
-    padding: 16px 10px;
   }
 
   .folder-cluster {
+    --archive-topbar-height: 44px;
+    --folder-grid-pad-y: 16px;
+    --folder-grid-pad-x: 10px;
     margin-top: 0;
     padding: 0;
     border-radius: 24px;

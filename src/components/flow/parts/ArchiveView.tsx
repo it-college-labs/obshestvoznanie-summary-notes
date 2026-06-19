@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
 import { ArticleFolderCard } from "../../archive/ArticleFolderCard";
 import type { ArticleListItem } from "../../../api/types";
 import type { FlowPhase } from "../../../flow/layout";
@@ -52,6 +53,8 @@ export function ArchiveView({
   onAdminClick,
   onRestartFlow,
 }: ArchiveViewProps) {
+  const [folderGridIsScrolled, setFolderGridIsScrolled] = useState(false);
+
   return (
     <motion.div
       key="archive"
@@ -73,7 +76,11 @@ export function ArchiveView({
     >
       <div className="flow-archive-layout">
         <section className="flow-archive-files" aria-label="Статьи">
-          <div className="folder-cluster">
+          <div
+            className={`folder-cluster ${
+              folderGridIsScrolled ? "folder-cluster--scrolled" : "folder-cluster--at-top"
+            }`}
+          >
             <motion.header
               className="archive-topbar"
               aria-label="Нейроархив"
@@ -126,7 +133,15 @@ export function ArchiveView({
             ) : articles.length === 0 ? (
               <div className="archive-state">Пока нет опубликованных статей</div>
             ) : (
-              <div className="folder-grid">
+              <div
+                className="folder-grid"
+                onScroll={(event) => {
+                  const nextIsScrolled = event.currentTarget.scrollTop > 6;
+                  setFolderGridIsScrolled((current) =>
+                    current === nextIsScrolled ? current : nextIsScrolled,
+                  );
+                }}
+              >
                 {articles.map((article, index) => (
                   <ArticleFolderCard
                     key={article.id}
